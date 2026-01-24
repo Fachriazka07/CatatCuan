@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: CatatCuan API
+  description: |
+    REST API untuk CatatCuan - Asisten Keuangan Digital Toko Kelontong.
+    
+    API ini terdiri dari:
+    - **Supabase PostgREST** - Auto-generated CRUD endpoints
+    - **Supabase RPC** - Custom business logic functions
+    - **Admin API** - Next.js routes untuk dashboard admin
+  version: 1.0.0
+  contact:
+    name: CatatCuan Support
+    email: support@catatcuan.id
+
+servers:
+  - url: https://{project-id}.supabase.co
+    description: Supabase Production
+  - url: https://admin.catatcuan.id/api/v1
+    description: Admin API
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Warung
+    description: Store profile management
+  - name: Produk
+    description: Product & inventory management
+  - name: Pelanggan
+    description: Customer database
+  - name: Penjualan
+    description: Sales transactions (POS)
+  - name: Pengeluaran
+    description: Expense tracking
+  - name: BukuKas
+    description: Cash book ledger
+  - name: Hutang
+    description: Customer debt management
+  - name: Laporan
+    description: Reports & statistics
+  - name: Admin
+    description: Admin dashboard operations
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==================== AUTH ====================
+  /auth/v1/signup:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                  example: "+6281234567890"
+                password:
+                  type: string
+                  minLength: 6
+      responses:
+        '201':
+          description: User created
+        '409':
+          description: Phone already registered
+
+  /auth/v1/token:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      parameters:
+        - name: grant_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [password]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT token returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: bearer
+                  expires_in:
+                    type: integer
+        '401':
+          description: Invalid credentials
+
+  # ==================== WARUNG ====================
+  /rest/v1/warung:
+    get:
+      tags: [Warung]
+      summary: Get user's warung
+      responses:
+        '200':
+          description: Warung data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Warung'
+    post:
+      tags: [Warung]
+      summary: Create warung (first-time setup)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarungCreate'
+      responses:
+        '201':
+          description: Warung created
+
+  # ==================== PRODUK ====================
+  /rest/v1/produk:
+    get:
+      tags: [Produk]
+      summary: List products
+      parameters:
+        - name: warung_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: barcode
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Produk'
+    post:
+      tags: [Produk]
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProdukCreate'
+      responses:
+        '201':
+          description: Product created
+
+  # ==================== PENJUALAN ====================
+  /rest/v1/rpc/create_penjualan:
+    post:
+      tags: [Penjualan]
+      summary: Create sale transaction
+      description: Creates sale header, items, updates stock, and cash book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_warung_id, p_payment_method, p_amount_paid, p_items]
+              properties:
+                p_warung_id:
+                  type: string
+                  format: uuid
+                p_pelanggan_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                p_payment_method:
+                  type: string
+                  enum: [tunai, hutang]
+                p_amount_paid:
+                  type: number
+                p_items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      produk_id:
+                        type: string
+                        format: uuid
+                      nama_produk:
+                        type: string
+                      quantity:
+                        type: integer
+                      harga_satuan:
+                        type: number
+                      subtotal:
+                        type: number
+      responses:
+        '200':
+          description: Sale created, returns penjualan_id
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+
+  # ==================== HUTANG ====================
+  /rest/v1/rpc/bayar_hutang:
+    post:
+      tags: [Hutang]
+      summary: Pay customer debt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_hutang_id, p_amount]
+              properties:
+                p_hutang_id:
+                  type: string
+                  format: uuid
+                p_amount:
+                  type: number
+                p_metode:
+                  type: string
+                  default: tunai
+      responses:
+        '200':
+          description: Payment recorded
+
+  # ==================== LAPORAN ====================
+  /rest/v1/rpc/get_saldo_kas:
+    post:
+      tags: [BukuKas]
+      summary: Get current cash balance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_warung_id]
+              properties:
+                p_warung_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Current balance
+          content:
+            application/json:
+              schema:
+                type: number
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Warung:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        nama_warung:
+          type: string
+        nama_pemilik:
+          type: string
+        alamat:
+          type: string
+        phone:
+          type: string
+        saldo_awal:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    WarungCreate:
+      type: object
+      required: [nama_warung, nama_pemilik, saldo_awal]
+      properties:
+        nama_warung:
+          type: string
+        nama_pemilik:
+          type: string
+        alamat:
+          type: string
+        phone:
+          type: string
+        saldo_awal:
+          type: number
+
+    Produk:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        warung_id:
+          type: string
+          format: uuid
+        kategori_id:
+          type: string
+          format: uuid
+        nama_produk:
+          type: string
+        barcode:
+          type: string
+        harga_modal:
+          type: number
+        harga_jual:
+          type: number
+        stok_saat_ini:
+          type: integer
+        stok_minimum:
+          type: integer
+        satuan:
+          type: string
+        is_active:
+          type: boolean
+
+    ProdukCreate:
+      type: object
+      required: [warung_id, nama_produk, harga_jual]
+      properties:
+        warung_id:
+          type: string
+          format: uuid
+        kategori_id:
+          type: string
+          format: uuid
+        nama_produk:
+          type: string
+        barcode:
+          type: string
+        harga_modal:
+          type: number
+          default: 0
+        harga_jual:
+          type: number
+        stok_saat_ini:
+          type: integer
+          default: 0
+        stok_minimum:
+          type: integer
+          default: 5
+        satuan:
+          type: string
+          default: pcs
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
