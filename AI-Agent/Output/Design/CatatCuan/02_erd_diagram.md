@@ -8,6 +8,12 @@
 
 ## 1. ERD Diagram
 
+### Visual Diagram (Figma)
+
+![ERD Diagram](file:///d:/Fachri/WORKSPACES/CatatCuan/AI-Agent/Output/Design/CatatCuan/diagrams/erd_diagram.png)
+
+### Mermaid Diagram
+
 ```mermaid
 erDiagram
     %% ==================== CORE ENTITIES ====================

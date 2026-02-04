@@ -170,7 +170,7 @@
 |------|-------|-----------|-------------|
 | 1 | Setup | Project Setup | Flutter + Supabase + Next.js scaffold |
 | 2-3 | Dev | Core Features | Transaction CRUD, Dashboard |
-| 4 | Dev | Reports | Daily/Weekly/Monthly, Excel export |
+| W4 | Dev | Reports | Daily/Weekly/Monthly, Excel export |
 | 5 | Dev | Sync | PowerSync integration |
 | 6 | Dev | Admin | User management, maintenance mode |
 | 7 | Test | Testing | Bug fixes, UI polish, beta test |

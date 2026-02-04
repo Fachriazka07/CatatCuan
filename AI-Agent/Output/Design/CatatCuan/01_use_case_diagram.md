@@ -18,6 +18,12 @@
 
 ## 2. Use Case Diagram
 
+### Visual Diagram (Figma)
+
+![Use Case Diagram](file:///d:/Fachri/WORKSPACES/CatatCuan/AI-Agent/Output/Design/CatatCuan/diagrams/use_case_diagram.png)
+
+### Mermaid Diagram
+
 ```mermaid
 flowchart TB
     subgraph Actors

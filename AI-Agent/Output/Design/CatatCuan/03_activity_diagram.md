@@ -5,7 +5,21 @@
 
 ---
 
-## 1. Onboarding & First-Time Setup Flow
+## Visual Diagrams (Figma)
+
+### Activity Diagram - Main Features Flow
+
+![Activity Diagram](file:///d:/Fachri/WORKSPACES/CatatCuan/AI-Agent/Output/Design/CatatCuan/diagrams/activity_diagram.png)
+
+### Application Flowchart
+
+![Flowchart](file:///d:/Fachri/WORKSPACES/CatatCuan/AI-Agent/Output/Design/CatatCuan/diagrams/flowchart.png)
+
+---
+
+## Mermaid Diagrams
+
+### 1. Onboarding & First-Time Setup Flow
 
 ```mermaid
 flowchart TD

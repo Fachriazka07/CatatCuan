@@ -4,34 +4,34 @@
     "date": "2026-01-22",
     "color": {
         "primary": {
-            "default": "#059669",
-            "dark": "#047857",
-            "light": "#10B981"
+            "default": "#13B158",
+            "dark": "#0E8A44",
+            "light": "#4CC97D"
         },
         "secondary": {
-            "default": "#2563EB",
-            "dark": "#1D4ED8",
-            "light": "#3B82F6"
+            "default": "#EAA220",
+            "dark": "#C4871A",
+            "light": "#F0B94D"
         },
         "semantic": {
-            "success": "#22C55E",
-            "warning": "#D97706",
+            "success": "#13B158",
+            "warning": "#EAA220",
             "error": "#DC2626",
             "info": "#2563EB"
         },
         "neutral": {
             "background": "#FFFFFF",
             "surface": "#F3F4F6",
-            "border": "#E5E7EB",
+            "border": "#D1EDD8",
             "textPrimary": "#111827",
             "textSecondary": "#6B7280",
             "textTertiary": "#9CA3AF"
         },
         "state": {
             "disabled": "#D1D5DB",
-            "hover": "rgba(5, 150, 105, 0.1)",
-            "pressed": "rgba(5, 150, 105, 0.2)",
-            "focus": "rgba(5, 150, 105, 0.3)"
+            "hover": "rgba(19, 177, 88, 0.1)",
+            "pressed": "rgba(19, 177, 88, 0.2)",
+            "focus": "rgba(19, 177, 88, 0.3)"
         }
     },
     "typography": {
