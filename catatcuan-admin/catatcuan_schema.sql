@@ -1,24 +1,67 @@
 -- CatatCuan Database Schema for Supabase (PostgreSQL)
--- Version: 1.0
+-- Version: 1.1 (Idempotent)
 -- Generated from: 02_erd_diagram.md
 
 -- =================================================================
 -- 1. EXTENSIONS & CUSTOM TYPES (ENUMS)
 -- =================================================================
 
--- Enable pgcrypto for UUID generation if not already enabled
--- Supabase should have this enabled by default.
--- CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Enable pgcrypto for UUID generation
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TYPE "user_status" AS ENUM ('active', 'inactive', 'suspended');
-CREATE TYPE "payment_method" AS ENUM ('tunai', 'hutang');
-CREATE TYPE "transaction_status" AS ENUM ('completed', 'cancelled');
-CREATE TYPE "expense_category_type" AS ENUM ('business', 'personal');
-CREATE TYPE "cash_flow_type" AS ENUM ('masuk', 'keluar');
-CREATE TYPE "cash_flow_source" AS ENUM ('penjualan', 'pengeluaran', 'hutang_bayar', 'saldo_awal');
-CREATE TYPE "debt_status" AS ENUM ('belum_lunas', 'lunas', 'lewat_jatuh_tempo');
-CREATE TYPE "payment_method_debt" AS ENUM ('tunai', 'transfer');
-CREATE TYPE "admin_role" AS ENUM ('superadmin', 'admin');
+DO $$ BEGIN
+    CREATE TYPE "user_status" AS ENUM ('active', 'inactive', 'suspended');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "payment_method" AS ENUM ('tunai', 'hutang');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "transaction_status" AS ENUM ('completed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "expense_category_type" AS ENUM ('business', 'personal');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "cash_flow_type" AS ENUM ('masuk', 'keluar');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "cash_flow_source" AS ENUM ('penjualan', 'pengeluaran', 'hutang_bayar', 'saldo_awal');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "debt_status" AS ENUM ('belum_lunas', 'lunas', 'lewat_jatuh_tempo');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "payment_method_debt" AS ENUM ('tunai', 'transfer');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "admin_role" AS ENUM ('superadmin', 'admin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- =================================================================
 -- 2. TABLE CREATION
@@ -28,7 +71,7 @@ CREATE TYPE "admin_role" AS ENUM ('superadmin', 'admin');
 
 -- ==================== ADMIN ENTITIES ====================
 
-CREATE TABLE "ADMIN_USERS" (
+CREATE TABLE IF NOT EXISTS "ADMIN_USERS" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "email" TEXT NOT NULL UNIQUE,
     "password_hash" TEXT NOT NULL,
@@ -38,7 +81,7 @@ CREATE TABLE "ADMIN_USERS" (
 );
 COMMENT ON TABLE "ADMIN_USERS" IS 'Admin users for managing the application.';
 
-CREATE TABLE "APP_CONFIG" (
+CREATE TABLE IF NOT EXISTS "APP_CONFIG" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "key" TEXT NOT NULL UNIQUE,
     "value" TEXT,
@@ -48,7 +91,7 @@ CREATE TABLE "APP_CONFIG" (
 );
 COMMENT ON TABLE "APP_CONFIG" IS 'Application-wide configuration settings.';
 
-CREATE TABLE "MASTER_KATEGORI_PRODUK" (
+CREATE TABLE IF NOT EXISTS "MASTER_KATEGORI_PRODUK" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "nama_kategori" TEXT NOT NULL,
     "icon" TEXT,
@@ -58,7 +101,16 @@ CREATE TABLE "MASTER_KATEGORI_PRODUK" (
 );
 COMMENT ON TABLE "MASTER_KATEGORI_PRODUK" IS 'Master list of product categories suggested to new users.';
 
-CREATE TABLE "SYSTEM_LOGS" (
+CREATE TABLE IF NOT EXISTS "MASTER_SATUAN" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "nama_satuan" TEXT NOT NULL,
+    "sort_order" INT DEFAULT 0,
+    "is_active" BOOLEAN DEFAULT true,
+    "created_at" TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE "MASTER_SATUAN" IS 'Master list of unit measurements suggested to new users.';
+
+CREATE TABLE IF NOT EXISTS "SYSTEM_LOGS" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "action" TEXT NOT NULL,
     "admin_id" UUID REFERENCES "ADMIN_USERS"("id"),
@@ -69,7 +121,7 @@ COMMENT ON TABLE "SYSTEM_LOGS" IS 'Logs for critical system events.';
 
 -- ==================== CORE ENTITIES ====================
 
-CREATE TABLE "USERS" (
+CREATE TABLE IF NOT EXISTS "USERS" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "phone_number" TEXT NOT NULL UNIQUE,
     "password_hash" TEXT NOT NULL,
@@ -80,7 +132,7 @@ CREATE TABLE "USERS" (
 );
 COMMENT ON TABLE "USERS" IS 'End-users who own warungs.';
 
-CREATE TABLE "WARUNG" (
+CREATE TABLE IF NOT EXISTS "WARUNG" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "user_id" UUID NOT NULL REFERENCES "USERS"("id"),
     "nama_warung" TEXT NOT NULL,
@@ -95,17 +147,30 @@ COMMENT ON TABLE "WARUNG" IS 'The shop or business profile owned by a user.';
 
 -- ==================== PRODUK ====================
 
-CREATE TABLE "KATEGORI_PRODUK" (
+CREATE TABLE IF NOT EXISTS "KATEGORI_PRODUK" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "nama_kategori" TEXT NOT NULL,
     "icon" TEXT,
     "sort_order" INT DEFAULT 0,
+    "master_kategori_id" UUID REFERENCES "MASTER_KATEGORI_PRODUK"("id") ON DELETE SET NULL,
     "created_at" TIMESTAMPTZ DEFAULT now()
 );
 COMMENT ON TABLE "KATEGORI_PRODUK" IS 'Product categories specific to a warung.';
+CREATE INDEX IF NOT EXISTS idx_kategori_produk_master ON "KATEGORI_PRODUK"("master_kategori_id");
 
-CREATE TABLE "PRODUK" (
+CREATE TABLE IF NOT EXISTS "SATUAN_PRODUK" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
+    "nama_satuan" TEXT NOT NULL,
+    "sort_order" INT DEFAULT 0,
+    "master_satuan_id" UUID REFERENCES "MASTER_SATUAN"("id") ON DELETE SET NULL,
+    "created_at" TIMESTAMPTZ DEFAULT now()
+);
+COMMENT ON TABLE "SATUAN_PRODUK" IS 'Unit measurements specific to a warung.';
+CREATE INDEX IF NOT EXISTS idx_satuan_produk_master ON "SATUAN_PRODUK"("master_satuan_id");
+
+CREATE TABLE IF NOT EXISTS "PRODUK" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "kategori_id" UUID REFERENCES "KATEGORI_PRODUK"("id") ON DELETE SET NULL,
@@ -124,7 +189,7 @@ COMMENT ON TABLE "PRODUK" IS 'Products available in a warung.';
 
 -- ==================== PELANGGAN ====================
 
-CREATE TABLE "PELANGGAN" (
+CREATE TABLE IF NOT EXISTS "PELANGGAN" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "nama" TEXT NOT NULL,
@@ -139,7 +204,7 @@ COMMENT ON COLUMN "PELANGGAN"."total_hutang" IS 'Denormalized for quick access. 
 
 -- ==================== TRANSAKSI PENJUALAN ====================
 
-CREATE TABLE "PENJUALAN" (
+CREATE TABLE IF NOT EXISTS "PENJUALAN" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "pelanggan_id" UUID REFERENCES "PELANGGAN"("id"),
@@ -158,7 +223,7 @@ CREATE TABLE "PENJUALAN" (
 COMMENT ON TABLE "PENJUALAN" IS 'Sales transaction header.';
 COMMENT ON COLUMN "PENJUALAN"."pelanggan_id" IS 'Can be NULL for anonymous cash sales.';
 
-CREATE TABLE "PENJUALAN_ITEM" (
+CREATE TABLE IF NOT EXISTS "PENJUALAN_ITEM" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "penjualan_id" UUID NOT NULL REFERENCES "PENJUALAN"("id") ON DELETE CASCADE,
     "produk_id" UUID NOT NULL REFERENCES "PRODUK"("id"),
@@ -174,7 +239,7 @@ COMMENT ON COLUMN "PENJUALAN_ITEM"."harga_satuan" IS 'Snapshot of price at time 
 
 -- ==================== PENGELUARAN ====================
 
-CREATE TABLE "KATEGORI_PENGELUARAN" (
+CREATE TABLE IF NOT EXISTS "KATEGORI_PENGELUARAN" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "nama_kategori" TEXT NOT NULL,
@@ -183,7 +248,7 @@ CREATE TABLE "KATEGORI_PENGELUARAN" (
 );
 COMMENT ON TABLE "KATEGORI_PENGELUARAN" IS 'Expense categories (e.g., stock purchase, operational).';
 
-CREATE TABLE "PENGELUARAN" (
+CREATE TABLE IF NOT EXISTS "PENGELUARAN" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "kategori_id" UUID NOT NULL REFERENCES "KATEGORI_PENGELUARAN"("id"),
@@ -199,7 +264,7 @@ COMMENT ON COLUMN "PENGELUARAN"."bukti_foto" IS 'URL to the receipt photo.';
 
 -- ==================== HUTANG ====================
 
-CREATE TABLE "HUTANG" (
+CREATE TABLE IF NOT EXISTS "HUTANG" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "pelanggan_id" UUID NOT NULL REFERENCES "PELANGGAN"("id"),
@@ -215,7 +280,7 @@ CREATE TABLE "HUTANG" (
 COMMENT ON TABLE "HUTANG" IS 'Debt records from customers.';
 COMMENT ON COLUMN "HUTANG"."penjualan_id" IS 'The original sale that created the debt.';
 
-CREATE TABLE "PEMBAYARAN_HUTANG" (
+CREATE TABLE IF NOT EXISTS "PEMBAYARAN_HUTANG" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "hutang_id" UUID NOT NULL REFERENCES "HUTANG"("id"),
     "tanggal" TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -228,7 +293,7 @@ COMMENT ON TABLE "PEMBAYARAN_HUTANG" IS 'Records of debt payments.';
 
 -- ==================== BUKU KAS ====================
 
-CREATE TABLE "BUKU_KAS" (
+CREATE TABLE IF NOT EXISTS "BUKU_KAS" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "tanggal" TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -247,7 +312,7 @@ COMMENT ON COLUMN "BUKU_KAS"."saldo_setelah" IS 'Running balance. Needs to be ca
 
 -- ==================== LAPORAN (CACHE) ====================
 
-CREATE TABLE "LAPORAN_HARIAN" (
+CREATE TABLE IF NOT EXISTS "LAPORAN_HARIAN" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "tanggal" DATE NOT NULL,
@@ -269,27 +334,27 @@ COMMENT ON TABLE "LAPORAN_HARIAN" IS 'Pre-calculated daily reports for performan
 -- =================================================================
 
 -- Foreign Keys (Rule #13)
-CREATE INDEX idx_warung_user ON "WARUNG"(user_id);
-CREATE INDEX idx_kategori_produk_warung ON "KATEGORI_PRODUK"(warung_id);
-CREATE INDEX idx_produk_warung ON "PRODUK"(warung_id);
-CREATE INDEX idx_produk_kategori ON "PRODUK"(kategori_id);
-CREATE INDEX idx_pelanggan_warung ON "PELANGGAN"(warung_id);
-CREATE INDEX idx_penjualan_warung ON "PENJUALAN"(warung_id);
-CREATE INDEX idx_penjualan_pelanggan ON "PENJUALAN"(pelanggan_id);
-CREATE INDEX idx_penjualan_item_penjualan ON "PENJUALAN_ITEM"(penjualan_id);
-CREATE INDEX idx_penjualan_item_produk ON "PENJUALAN_ITEM"(produk_id);
-CREATE INDEX idx_kategori_pengeluaran_warung ON "KATEGORI_PENGELUARAN"(warung_id);
-CREATE INDEX idx_pengeluaran_warung ON "PENGELUARAN"(warung_id);
-CREATE INDEX idx_pengeluaran_kategori ON "PENGELUARAN"(kategori_id);
-CREATE INDEX idx_hutang_warung ON "HUTANG"(warung_id);
-CREATE INDEX idx_hutang_pelanggan ON "HUTANG"(pelanggan_id);
-CREATE INDEX idx_pembayaran_hutang_hutang ON "PEMBAYARAN_HUTANG"(hutang_id);
-CREATE INDEX idx_buku_kas_warung ON "BUKU_KAS"(warung_id);
-CREATE INDEX idx_laporan_harian_warung ON "LAPORAN_HARIAN"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_warung_user ON "WARUNG"(user_id);
+CREATE INDEX IF NOT EXISTS idx_kategori_produk_warung ON "KATEGORI_PRODUK"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_produk_warung ON "PRODUK"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_produk_kategori ON "PRODUK"(kategori_id);
+CREATE INDEX IF NOT EXISTS idx_pelanggan_warung ON "PELANGGAN"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_penjualan_warung ON "PENJUALAN"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_penjualan_pelanggan ON "PENJUALAN"(pelanggan_id);
+CREATE INDEX IF NOT EXISTS idx_penjualan_item_penjualan ON "PENJUALAN_ITEM"(penjualan_id);
+CREATE INDEX IF NOT EXISTS idx_penjualan_item_produk ON "PENJUALAN_ITEM"(produk_id);
+CREATE INDEX IF NOT EXISTS idx_kategori_pengeluaran_warung ON "KATEGORI_PENGELUARAN"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_pengeluaran_warung ON "PENGELUARAN"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_pengeluaran_kategori ON "PENGELUARAN"(kategori_id);
+CREATE INDEX IF NOT EXISTS idx_hutang_warung ON "HUTANG"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_hutang_pelanggan ON "HUTANG"(pelanggan_id);
+CREATE INDEX IF NOT EXISTS idx_pembayaran_hutang_hutang ON "PEMBAYARAN_HUTANG"(hutang_id);
+CREATE INDEX IF NOT EXISTS idx_buku_kas_warung ON "BUKU_KAS"(warung_id);
+CREATE INDEX IF NOT EXISTS idx_laporan_harian_warung ON "LAPORAN_HARIAN"(warung_id);
 
 -- Query Optimization
-CREATE INDEX idx_penjualan_tanggal ON "PENJUALAN"(warung_id, tanggal);
-CREATE INDEX idx_buku_kas_tanggal ON "BUKU_KAS"(warung_id, tanggal);
-CREATE INDEX idx_hutang_status ON "HUTANG"(warung_id, status);
-CREATE INDEX idx_produk_active ON "PRODUK"(warung_id, is_active);
-CREATE INDEX idx_buku_kas_reference ON "BUKU_KAS"(reference_id, reference_type);
+CREATE INDEX IF NOT EXISTS idx_penjualan_tanggal ON "PENJUALAN"(warung_id, tanggal);
+CREATE INDEX IF NOT EXISTS idx_buku_kas_tanggal ON "BUKU_KAS"(warung_id, tanggal);
+CREATE INDEX IF NOT EXISTS idx_hutang_status ON "HUTANG"(warung_id, status);
+CREATE INDEX IF NOT EXISTS idx_produk_active ON "PRODUK"(warung_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_buku_kas_reference ON "BUKU_KAS"(reference_id, reference_type);
