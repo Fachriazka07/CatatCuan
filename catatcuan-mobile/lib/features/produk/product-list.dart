@@ -17,7 +17,26 @@ class _ProductListPageState extends State<ProductListPage> {
   bool isLoading = true;
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> filteredProducts = [];
+  Map<String, List<Map<String, dynamic>>> groupedProducts = {};
+  
+  String _selectedCategoryFilter = 'Semua Kategori';
+  List<String> _availableCategories = ['Semua Kategori'];
+  int _maxCategoriesShown = 3;
+  int _maxItemsPerCategory = 10;
+  
   final TextEditingController _searchController = TextEditingController();
+
+  static const Set<String> _validIcons = {
+    'BumbuDapur.png', 'Cemilan.png', 'Lainya.png', 'Minuman.png',
+    'Obat.png', 'PerlengkapanMandi.png', 'Rokok.png', 'Sembako.png',
+  };
+
+  String _resolveIconPath(String? iconName) {
+    if (iconName == null || iconName.isEmpty || !_validIcons.contains(iconName)) {
+      return 'assets/icon/produk-icon/Lainya.png';
+    }
+    return 'assets/icon/produk-icon/$iconName';
+  }
 
   @override
   void initState() {
@@ -48,13 +67,22 @@ class _ProductListPageState extends State<ProductListPage> {
 
       final data = await supabase
           .from('PRODUK')
-          .select('*, KATEGORI_PRODUK(nama_kategori)')
+          .select('*, KATEGORI_PRODUK(nama_kategori, icon)')
           .eq('warung_id', warungId)
           .order('nama_produk', ascending: true);
 
       setState(() {
         products = List<Map<String, dynamic>>.from(data);
-        filteredProducts = products;
+        
+        _availableCategories = ['Semua Kategori'];
+        for (var p in products) {
+          final catName = (p['KATEGORI_PRODUK']?['nama_kategori'] ?? 'Lainnya').toString();
+          if (!_availableCategories.contains(catName)) {
+            _availableCategories.add(catName);
+          }
+        }
+        
+        _filterProducts();
       });
     } catch (e) {
       debugPrint('Error fetching products: $e');
@@ -65,12 +93,30 @@ class _ProductListPageState extends State<ProductListPage> {
 
   void _filterProducts() {
     final query = _searchController.text.toLowerCase();
+    
+    final filteredList = products.where((product) {
+      final name = (product['nama_produk'] ?? '').toString().toLowerCase();
+      final category = (product['KATEGORI_PRODUK']?['nama_kategori'] ?? 'Lainnya').toString().toLowerCase();
+      
+      bool matchesQuery = name.contains(query) || category.contains(query);
+      bool matchesCategory = _selectedCategoryFilter == 'Semua Kategori' || category == _selectedCategoryFilter.toLowerCase();
+      
+      return matchesQuery && matchesCategory;
+    }).toList();
+    
+    // Group them
+    Map<String, List<Map<String, dynamic>>> newGrouped = {};
+    for (var product in filteredList) {
+      final categoryName = (product['KATEGORI_PRODUK']?['nama_kategori'] ?? 'Lainnya').toString().toUpperCase();
+      if (!newGrouped.containsKey(categoryName)) {
+        newGrouped[categoryName] = [];
+      }
+      newGrouped[categoryName]!.add(product);
+    }
+    
     setState(() {
-      filteredProducts = products.where((product) {
-        final name = (product['nama_produk'] ?? '').toString().toLowerCase();
-        final category = (product['KATEGORI_PRODUK']?['nama_kategori'] ?? '').toString().toLowerCase();
-        return name.contains(query) || category.contains(query);
-      }).toList();
+      filteredProducts = filteredList;
+      groupedProducts = newGrouped;
     });
   }
 
@@ -81,12 +127,13 @@ class _ProductListPageState extends State<ProductListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white background based on typical app use
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
             _buildSearchBar(),
+            _buildFilterDropdown(),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _fetchProducts,
@@ -248,6 +295,48 @@ class _ProductListPageState extends State<ProductListPage> {
     );
   }
 
+  Widget _buildFilterDropdown() {
+    return Container(
+      margin: const EdgeInsets.only(top: 30, left: 16, right: 16, bottom: 8),
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCategoryFilter,
+          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primary, size: 24),
+          isExpanded: true,
+          style: const TextStyle(
+            color: AppTheme.primary,
+            fontSize: 16,
+            fontWeight: FontWeight.w500, // medium
+            fontFamily: 'Poppins',
+          ),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedCategoryFilter = newValue;
+                _maxCategoriesShown = 3;
+                _maxItemsPerCategory = 10;
+                _filterProducts();
+              });
+            }
+          },
+          items: _availableCategories.map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -276,95 +365,191 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Widget _buildProductList() {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: filteredProducts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final product = filteredProducts[index];
-        return _buildProductCard(product);
-      },
+    final categoryKeys = groupedProducts.keys.toList();
+    // Sort keys alphabetically
+    categoryKeys.sort();
+    
+    // Sort items inside each category by name
+    for (var key in categoryKeys) {
+      groupedProducts[key]!.sort((a, b) {
+        final aName = (a['nama_produk'] as String? ?? '').toLowerCase();
+        final bName = (b['nama_produk'] as String? ?? '').toLowerCase();
+        return aName.compareTo(bName);
+      });
+    }
+
+    final int catsToShow = (_maxCategoriesShown < categoryKeys.length) ? _maxCategoriesShown : categoryKeys.length;
+    
+    bool hasMore = false;
+    if (categoryKeys.length > _maxCategoriesShown) hasMore = true;
+
+    List<Widget> listWidgets = [];
+    
+    for (int i = 0; i < catsToShow; i++) {
+      final catName = categoryKeys[i];
+      final items = groupedProducts[catName]!;
+      
+      if (items.length > _maxItemsPerCategory) hasMore = true;
+      
+      final itemsToShow = (items.length > _maxItemsPerCategory) ? _maxItemsPerCategory : items.length;
+      
+      listWidgets.add(
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+          child: Text(
+            catName,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500, // medium
+              color: Color(0xFF374151),
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ),
+      );
+      
+      List<Widget> cardItems = [];
+      for (int j = 0; j < itemsToShow; j++) {
+        cardItems.add(_buildProductCardContent(items[j]));
+        if (j < itemsToShow - 1) {
+          cardItems.add(const Divider(height: 1, thickness: 1, color: Color(0xFFD1EDD8)));
+        }
+      }
+      
+      listWidgets.add(
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+          ),
+          child: Column(
+            children: cardItems,
+          ),
+        )
+      );
+    }
+    
+    if (hasMore) {
+      listWidgets.add(
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _maxCategoriesShown += 3;
+                _maxItemsPerCategory += 10;
+              });
+            },
+            child: Container(
+              height: 60,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Load More',
+                style: TextStyle(
+                  color: AppTheme.primary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    
+    listWidgets.add(const SizedBox(height: 100));
+
+    return ListView(
+      children: listWidgets,
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product) {
+  Widget _buildProductCardContent(Map<String, dynamic> product) {
+    final satuan = product['satuan'] ?? 'PCS';
+    final stok = product['stok_saat_ini'] ?? 0;
+    final nama = (product['nama_produk'] as String? ?? 'NAMA PRODUK').toUpperCase();
+    
+    String iconName = product['KATEGORI_PRODUK']?['icon'] ?? 'Lainya.png';
+    String iconPath = _resolveIconPath(iconName);
+
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD1EDD8)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      height: 70, 
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: Colors.transparent,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Product Icon / Placeholder
+          // Left Icon
           Container(
-            width: 60,
-            height: 60,
-            padding: const EdgeInsets.all(8),
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFFF3FBF6),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFF2F6FF),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFD1EDD8)),
             ),
-            child: Image.asset(
-              'assets/main-page/icon/package.png',
-              fit: BoxFit.contain,
-            ),
+            padding: const EdgeInsets.all(8.0),
+            child: Image.asset(iconPath, fit: BoxFit.contain), 
           ),
-          const SizedBox(width: 12),
-          // Product Details
+          const SizedBox(width: 10),
+          
+          // Texts
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  product['nama_produk'] ?? 'Nama Produk',
+                  nama,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500, // medium
+                    color: Color(0xFFF8BD00), // secondary color
                     fontFamily: 'Poppins',
                   ),
                 ),
-                Text(
-                  product['KATEGORI_PRODUK']?['nama_kategori'] ?? 'Kategori',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      _formatCurrency(product['harga_jual'] ?? 0),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
-                        fontFamily: 'Poppins',
+                    const SizedBox(
+                      width: 70,
+                      child: Text(
+                        'Sisa Stok',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500, // medium
+                          color: Color(0xFF6B7280),
+                          fontFamily: 'Poppins',
+                        ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    Expanded(
                       child: Text(
-                        'Stok: ${product['stok_saat_ini'] ?? 0}',
+                        ': $stok $satuan',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w500, // medium
+                          color: Color(0xFF6B7280),
                           fontFamily: 'Poppins',
                         ),
                       ),
@@ -374,15 +559,23 @@ class _ProductListPageState extends State<ProductListPage> {
               ],
             ),
           ),
-          // Edit/Action Icon
-          IconButton(
-            onPressed: () {
-              // Edit product action
-            },
-            icon: const Icon(Icons.more_vert, color: Colors.grey),
+          
+          // Price
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: Text(
+              _formatCurrency(product['harga_jual'] ?? 0),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500, // medium
+                color: AppTheme.primary,
+                fontFamily: 'Poppins',
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
