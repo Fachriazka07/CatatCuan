@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
+import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -30,9 +31,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     // 1. Validasi Input Kosong
     if (phone.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomer HP dan Password harus diisi')),
-      );
+      AppToast.showInfo(context, 'Nomer HP dan Password harus diisi');
       return;
     }
 
@@ -41,17 +40,13 @@ class _RegisterPageState extends State<RegisterPage> {
     phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (!phone.startsWith('08') && !phone.startsWith('628')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomer HP harus diawali 08 atau 628')),
-      );
+      AppToast.showInfo(context, 'Nomer HP harus diawali 08 atau 628');
       return;
     }
 
     // Cek panjang digit (biasanya 10-13 digit untuk indo)
     if (phone.length < 10 || phone.length > 14) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomer HP tidak valid (10-13 digit)')),
-      );
+      AppToast.showInfo(context, 'Nomer HP tidak valid (10-13 digit)');
       return;
     }
 
@@ -61,9 +56,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password minimal 6 karakter')),
-      );
+      AppToast.showInfo(context, 'Password minimal 6 karakter');
       return;
     }
 
@@ -82,27 +75,22 @@ class _RegisterPageState extends State<RegisterPage> {
           .single();
 
       if (mounted) {
-        final userId = response['id'];
+        final userId = response['id'] as String;
         
         // Save Session Locally
         await SessionService.saveSession(userId, phone);
 
         // Navigate to Onboarding
-        context.go('/onboarding');
+        if (mounted) context.go('/onboarding');
       }
     } catch (e) {
       if (mounted) {
-        String message = 'Terjadi kesalahan, silakan coba lagi';
-        if (e.toString().contains('duplicate key')) {
-          message = 'Nomor HP sudah terdaftar';
+        final errorMessage = e.toString();
+        if (errorMessage.contains('duplicate key')) {
+          // Nomor HP sudah terdaftar
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'), // Show actual error
-            backgroundColor: AppTheme.error,
-          ),
-        );
+        AppToast.showError(context, 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -140,7 +128,7 @@ class _RegisterPageState extends State<RegisterPage> {
               width: 286,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
@@ -152,7 +140,7 @@ class _RegisterPageState extends State<RegisterPage> {
               width: 265,
               height: 278,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(130),
               ),
             ),

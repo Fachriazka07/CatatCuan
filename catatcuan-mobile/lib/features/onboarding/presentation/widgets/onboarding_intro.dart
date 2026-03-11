@@ -1,15 +1,14 @@
-import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/widgets/gradient_background.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OnboardingIntro extends StatelessWidget {
-  final VoidCallback onNext;
 
   const OnboardingIntro({
     super.key,
     required this.onNext,
   });
+  final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +58,7 @@ class OnboardingIntro extends StatelessWidget {
                   'Kelola warung jadi lebih rapi dan untung.',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -83,7 +82,7 @@ class OnboardingIntro extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 8,
-                  shadowColor: Colors.black.withOpacity(0.2),
+                  shadowColor: Colors.black.withValues(alpha: 0.2),
                 ),
                 child: Text(
                   'Mulai Sekarang',

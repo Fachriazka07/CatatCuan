@@ -3,11 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OnboardingProfile extends StatelessWidget {
-  final TextEditingController ownerNameController;
-  final TextEditingController nameController;
-  final TextEditingController addressController;
-  final VoidCallback onNext;
-  final VoidCallback onBack;
 
   const OnboardingProfile({
     super.key,
@@ -17,6 +12,11 @@ class OnboardingProfile extends StatelessWidget {
     required this.onNext,
     required this.onBack,
   });
+  final TextEditingController ownerNameController;
+  final TextEditingController nameController;
+  final TextEditingController addressController;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class OnboardingProfile extends StatelessWidget {
             width: 286,
             height: 200,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(100),
             ),
           ),
@@ -58,7 +58,7 @@ class OnboardingProfile extends StatelessWidget {
             width: 265,
             height: 278,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(130),
             ),
           ),
@@ -236,7 +236,7 @@ class OnboardingProfile extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primary.withOpacity(0.3),
+                                color: AppTheme.primary.withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 6),
                               ),

@@ -5,6 +5,6 @@ class Env {
   static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
   static Future<void> load() async {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load(fileName: '.env');
   }
 }

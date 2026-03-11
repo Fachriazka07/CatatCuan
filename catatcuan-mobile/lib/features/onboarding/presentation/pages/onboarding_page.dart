@@ -1,5 +1,5 @@
-import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
+import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_business_type.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_capital.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_intro.dart';
@@ -8,6 +8,7 @@ import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboar
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 /// Page indices:
 /// 0 = Welcome Intro
@@ -81,7 +82,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final userId = await SessionService.getUserId();
     
     if (userId == null) {
-      context.go('/login');
+      if (mounted) context.go('/login');
       return;
     }
 
@@ -112,7 +113,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           .select()
           .single();
       
-      final warungId = warungResponse['id'];
+      final warungId = warungResponse['id'] as String;
 
       // 2. Record Initial Balance (Uang Laci)
       if (cashInDrawer > 0) {
@@ -146,14 +147,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
       await _seedSatuan(warungId);
 
       if (mounted) {
-        context.go('/home');
+        // Preload all data into cache before navigating
+        final cachedUserId = await SessionService.getUserId();
+        if (cachedUserId != null) {
+          await DataCacheService.instance.loadAll(cachedUserId);
+        }
+        if (mounted) context.go('/home');
       }
 
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        AppToast.showError(context, 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -295,15 +299,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   addressController: _businessAddressController,
                   onNext: () {
                     if (_ownerNameController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nama lengkap wajib diisi')),
-                      );
+                      AppToast.showWarning(context, 'Nama lengkap wajib diisi');
                       return;
                     }
                     if (_businessNameController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Nama usaha wajib diisi')),
-                      );
+                      AppToast.showWarning(context, 'Nama usaha wajib diisi');
                       return;
                     }
                     _nextPage();
@@ -345,7 +345,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -369,22 +369,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   : () {
                       // Validation based on current form page
                       if (_currentPage == 2 && _selectedBusinessType == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Pilih jenis usaha dulu')),
-                        );
+                        AppToast.showWarning(context, 'Pilih jenis usaha dulu');
                         return;
                       }
                       if (_currentPage == 4) {
                         if (_ownerNameController.text.isEmpty) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nama lengkap wajib diisi')),
-                          );
+                           AppToast.showWarning(context, 'Nama lengkap wajib diisi');
                           return;
                         }
                         if (_businessNameController.text.isEmpty) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nama usaha wajib diisi')),
-                          );
+                           AppToast.showWarning(context, 'Nama usaha wajib diisi');
                           return;
                         }
                       }

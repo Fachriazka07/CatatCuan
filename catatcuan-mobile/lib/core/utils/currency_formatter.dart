@@ -10,17 +10,17 @@ class CurrencyInputFormatter extends TextInputFormatter {
     }
 
     // Remove all non-numeric characters
-    String cleanText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final String cleanText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
     
     if (cleanText.isEmpty) {
       return newValue.copyWith(text: '');
     }
 
-    double value = double.parse(cleanText);
+    final double value = double.parse(cleanText);
     
     // Format as Indonesian currency (using . as thousand separator)
     final formatter = NumberFormat.decimalPattern('id_ID');
-    String newText = formatter.format(value);
+    final String newText = formatter.format(value);
 
     return newValue.copyWith(
       text: newText,

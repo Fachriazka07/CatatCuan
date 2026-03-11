@@ -1,9 +1,11 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
+import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,9 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
     // 1. Validasi Input Kosong
     if (phone.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomer HP dan Password harus diisi')),
-      );
+      AppToast.showInfo(context, 'Nomer HP dan Password harus diisi');
       return;
     }
 
@@ -57,28 +57,18 @@ class _LoginPageState extends State<LoginPage> {
 
       if (mounted) {
         if (response != null) {
-          final userId = response['id'];
+          final userId = response['id'] as String;
           // Save Session Locally
           await SessionService.saveSession(userId, phone);
           
           await _checkUserWarung(userId);
         } else {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nomer HP atau Password salah'),
-              backgroundColor: AppTheme.error,
-            ),
-          );
+           AppToast.showError(context, 'Nomer HP atau Password salah');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
+        AppToast.showError(context, 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -97,7 +87,9 @@ class _LoginPageState extends State<LoginPage> {
 
       if (mounted) {
         if (warung != null) {
-          context.go('/home');
+          // Preload all data into cache before navigating
+          await DataCacheService.instance.loadAll(userId);
+          if (mounted) context.go('/home');
         } else {
           context.go('/onboarding');
         }
@@ -143,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
               width: 286,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
@@ -155,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
               width: 265,
               height: 278,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(130),
               ),
             ),

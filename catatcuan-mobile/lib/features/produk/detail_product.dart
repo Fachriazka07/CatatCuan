@@ -4,23 +4,18 @@ import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:catatcuan_mobile/core/utils/barcode_helper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
-class InsertProductPage extends StatefulWidget {
-  final String? initialBarcode;
-  
-  const InsertProductPage({
-    super.key,
-    this.initialBarcode,
-  });
+class DetailProductPage extends StatefulWidget {
+  const DetailProductPage({super.key, required this.product});
+  final Map<String, dynamic> product;
 
   @override
-  State<InsertProductPage> createState() => _InsertProductPageState();
+  State<DetailProductPage> createState() => _DetailProductPageState();
 }
 
-class _InsertProductPageState extends State<InsertProductPage> {
+class _DetailProductPageState extends State<DetailProductPage> {
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
   final _cache = DataCacheService.instance;
@@ -40,16 +35,14 @@ class _InsertProductPageState extends State<InsertProductPage> {
   List<Map<String, dynamic>> _satuanItems = [];
   bool _isLoading = false;
   bool _tanpaStok = false;
-  String? _warungId;
-  String _kodeProduk = '';
 
-  /// Valid icon filenames in assets/icon/produk-icon/
+  late String _kodeProduk;
+
   static const Set<String> _validIcons = {
     'BumbuDapur.png', 'Cemilan.png', 'Lainya.png', 'Minuman.png',
     'Obat.png', 'PerlengkapanMandi.png', 'Rokok.png', 'Sembako.png',
   };
 
-  /// Resolve icon path — validates against known assets, fallback to Lainya
   String _resolveIconPath(String? iconName) {
     if (iconName == null || iconName.isEmpty || !_validIcons.contains(iconName)) {
       return 'assets/icon/produk-icon/Lainya.png';
@@ -62,15 +55,27 @@ class _InsertProductPageState extends State<InsertProductPage> {
   @override
   void initState() {
     super.initState();
-    final initial = widget.initialBarcode?.trim();
-    if (initial != null && initial.isNotEmpty && initial != '-1') {
-      _kodeProduk = initial;
-    } else {
-      _kodeProduk = _generateKodeProduk();
+    _kodeProduk = (widget.product['barcode'] as String?) ?? _generateKodeProduk();
+    _namaController.text = widget.product['nama_produk']?.toString() ?? '';
+    _hargaModalController.text = num.parse((widget.product['harga_modal'] ?? 0).toString()).toInt().toString();
+    _hargaJualController.text = num.parse((widget.product['harga_jual'] ?? 0).toString()).toInt().toString();
+    
+    final stok = num.parse((widget.product['stok_saat_ini'] ?? 0).toString()).toInt();
+    _stokController.text = stok.toString();
+    
+    _selectedKategoriId = widget.product['kategori_id'] as String?;
+    _selectedSatuan = widget.product['satuan'] as String?;
+
+    if (widget.product['KATEGORI_PRODUK'] != null) {
+      final kategori = widget.product['KATEGORI_PRODUK'] as Map<String, dynamic>;
+      _selectedKategoriName = (kategori['nama_kategori'] as String?) ?? 'Lainnya';
+      _selectedKategoriIcon = (kategori['icon'] as String?) ?? 'Lainya.png';
     }
+
     _loadFromCache();
     _hargaModalController.addListener(_calculateMargin);
     _hargaJualController.addListener(_calculateMargin);
+    _calculateMargin();
   }
 
   @override
@@ -82,8 +87,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
     super.dispose();
   }
 
-  /// Generate kode produk random — format: 1 huruf prefix + 12 karakter alfanumerik
-  /// Mirip format barcode EAN-13 (13 digit) yang umum di produk makanan retail
   String _generateKodeProduk() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final rng = Random();
@@ -105,19 +108,78 @@ class _InsertProductPageState extends State<InsertProductPage> {
 
   /// Load data from cache — instant, no network call, no loading spinner.
   void _loadFromCache() {
-    _warungId = _cache.warungId;
+
     _categories = List<Map<String, dynamic>>.from(_cache.categories);
     _satuanItems = List<Map<String, dynamic>>.from(_cache.satuanItems);
   }
 
+  Future<void> _deleteProduct() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Produk', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+        content: const Text('Apakah Anda yakin ingin menghapus produk ini?', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
+                  ),
+                  child: const Text('Batal', style: TextStyle(color: Color(0xFF6B7280), fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444), // Tailwind Red 500
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Hapus', style: TextStyle(color: Colors.white, fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      try {
+        await supabase.from('PRODUK').delete().eq('id', widget.product['id'] as Object);
+        if (mounted) {
+          AppToast.showSuccess(context, 'Produk berhasil dihapus');
+          context.pop(true);
+        }
+      } catch (e) {
+        debugPrint('Error deleting product: $e');
+        if (mounted) {
+          AppToast.showError(context, 'Gagal menghapus produk: $e');
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_warungId == null) return;
 
     setState(() => _isLoading = true);
     try {
       final productData = {
-        'warung_id': _warungId,
         'kategori_id': _selectedKategoriId,
         'nama_produk': _namaController.text,
         'barcode': _kodeProduk,
@@ -130,13 +192,13 @@ class _InsertProductPageState extends State<InsertProductPage> {
         'stok_saat_ini':
             _tanpaStok ? 0 : (int.tryParse(_stokController.text) ?? 0),
         'satuan': _selectedSatuan,
-        'is_active': true,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
-      await supabase.from('PRODUK').insert(productData);
+      await supabase.from('PRODUK').update(productData).eq('id', widget.product['id'] as Object);
 
       if (mounted) {
-        AppToast.showSuccess(context, 'Produk berhasil ditambahkan');
+        AppToast.showSuccess(context, 'Produk berhasil diperbarui');
         context.pop(true);
       }
     } catch (e) {
@@ -149,6 +211,23 @@ class _InsertProductPageState extends State<InsertProductPage> {
     }
   }
 
+  void _tambahStok() {
+    final int current = int.tryParse(_stokController.text) ?? 0;
+    setState(() {
+      _stokController.text = (current + 1).toString();
+      _tanpaStok = false;
+    });
+  }
+
+  void _kurangStok() {
+    final int current = int.tryParse(_stokController.text) ?? 0;
+    if (current > 0) {
+      setState(() {
+        _stokController.text = (current - 1).toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,7 +237,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
           children: [
             _buildHeader(),
             Expanded(
-              child: _isLoading && _warungId == null
+              child: _isLoading && _categories.isEmpty 
                   ? const Center(child: CircularProgressIndicator())
                   : SingleChildScrollView(
                       child: Form(
@@ -184,7 +263,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
     );
   }
 
-
   Widget _buildHeader() {
     return Container(
       height: 100,
@@ -205,7 +283,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Tambah Produk',
+                  'Detail Produk',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -213,18 +291,34 @@ class _InsertProductPageState extends State<InsertProductPage> {
                     fontFamily: 'Poppins',
                   ),
                 ),
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _deleteProduct(),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.red.withValues(alpha: 0.9),
+                        ),
+                        child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
+                      ),
                     ),
-                    child: const Icon(Icons.close, color: Colors.black,
-                        size: 24),
-                  ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.black, size: 24),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -233,8 +327,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
       ),
     );
   }
-
-  // ==================== TOP CONTAINER ====================
 
   Widget _buildTopContainer() {
     return Container(
@@ -256,11 +348,9 @@ class _InsertProductPageState extends State<InsertProductPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- Kode Produk Row ---
           _buildKodeProdukRow(),
           const SizedBox(height: 20),
 
-          // --- Nama Produk ---
           const Text(
             'Nama Produk',
             style: TextStyle(
@@ -288,7 +378,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
           ),
           const SizedBox(height: 16),
 
-          // --- Kategori ---
           const Text(
             'Kategori',
             style: TextStyle(
@@ -346,7 +435,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
           ),
           const SizedBox(height: 16),
 
-          // --- Satuan ---
           const Text(
             'Satuan',
             style: TextStyle(
@@ -409,13 +497,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
     );
   }
 
-  // ==================== KODE PRODUK ROW ====================
-
   Widget _buildKodeProdukRow() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Icon container 90x90
         Container(
           width: 90,
           height: 90,
@@ -441,7 +526,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
           ),
         ),
         const SizedBox(width: 16),
-        // Kode Produk text
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +552,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
             ],
           ),
         ),
-        // Edit icon 48x48
         GestureDetector(
           onTap: _showEditKodeDialog,
           child: SizedBox(
@@ -485,8 +568,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
       ],
     );
   }
-
-  // ==================== STOK & HARGA CARD ====================
 
   Widget _buildStokHargaCard() {
     return Container(
@@ -507,7 +588,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stok header row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -540,7 +620,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       onChanged: (v) {
                         setState(() {
                           _tanpaStok = v ?? false;
-                          if (_tanpaStok) _stokController.clear();
+                          if (_tanpaStok) _stokController.text = '0';
                         });
                       },
                       activeColor: AppTheme.primary,
@@ -556,24 +636,58 @@ class _InsertProductPageState extends State<InsertProductPage> {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: 60,
-            child: TextFormField(
-              controller: _stokController,
-              enabled: !_tanpaStok,
-              keyboardType: TextInputType.number,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF6B7280).withValues(alpha: 0.8),
-                fontFamily: 'Poppins',
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _tanpaStok ? null : _kurangStok,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                  ),
+                  child: const Icon(Icons.remove, color: AppTheme.primary, size: 28),
+                ),
               ),
-              decoration: _inputDecoration(''),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 60,
+                  child: TextFormField(
+                    controller: _stokController,
+                    enabled: !_tanpaStok,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                      fontFamily: 'Poppins',
+                    ),
+                    decoration: _inputDecoration(''),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _tanpaStok ? null : _tambahStok,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                  ),
+                  child: const Icon(Icons.add, color: AppTheme.primary, size: 28),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // Harga row
           Row(
             children: [
               Expanded(
@@ -647,7 +761,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
           ),
           const SizedBox(height: 12),
 
-          // Margin
           const Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -676,8 +789,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
       ),
     );
   }
-
-  // ==================== SAVE BUTTON ====================
 
   Widget _buildSaveButton() {
     return Padding(
@@ -709,8 +820,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
       ),
     );
   }
-
-  // ==================== SHARED INPUT DECORATION ====================
 
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
@@ -744,8 +853,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
     );
   }
 
-  // ==================== DIALOGS ====================
-
   void _showEditKodeDialog() {
     showModalBottomSheet<void>(
       context: context,
@@ -760,7 +867,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Drag handle
               Container(
                 width: 40,
                 height: 4,
@@ -770,7 +876,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Title with icon
               Row(
                 children: [
                   Container(
@@ -813,7 +918,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                 ],
               ),
               const SizedBox(height: 24),
-              // Option 1: Edit Manual
               _buildOptionTile(
                 onTap: () {
                   Navigator.pop(ctx);
@@ -826,19 +930,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
                 subtitle: 'Ketik kode produk sendiri',
               ),
               const SizedBox(height: 12),
-              // Option 2: Scan Barcode
               _buildOptionTile(
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(ctx);
-                  final res = await BarcodeHelper.scanOnce(
-                    context,
-                    appBarTitle: 'Scan Barcode Produk',
-                  );
-                  if (res != null && res != '-1' && res.isNotEmpty) {
-                    setState(() {
-                      _kodeProduk = res;
-                    });
-                  }
+                  AppToast.showInfo(context, 'Fitur scan barcode segera hadir');
                 },
                 icon: Icons.qr_code_scanner_rounded,
                 iconBg: const Color(0xFFF8BD00).withValues(alpha: 0.1),
@@ -847,7 +942,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                 subtitle: 'Scan kode barcode produk',
               ),
               const SizedBox(height: 12),
-              // Option 3: Generate Baru
               _buildOptionTile(
                 onTap: () {
                   setState(() => _kodeProduk = _generateKodeProduk());
@@ -949,7 +1043,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Drag handle
                 Center(
                   child: Container(
                     width: 40,
@@ -979,7 +1072,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Input
                 SizedBox(
                   height: 56,
                   child: TextField(
@@ -996,7 +1088,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Buttons
                 Row(
                   children: [
                     Expanded(
@@ -1099,12 +1190,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         fontFamily: 'Poppins'),
                   ),
                   const SizedBox(height: 16),
-                  // Scrollable list
                   Expanded(
                     child: ListView(
                       controller: scrollController,
                       children: [
-                        // Lainnya (default)
                         ListTile(
                           leading: Image.asset(
                             'assets/icon/produk-icon/Lainya.png',
@@ -1155,209 +1244,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       ],
                     ),
                   ),
-                  // Tambah Kategori button
-                  const Divider(),
-                  ListTile(
-                    leading: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.add,
-                          color: AppTheme.primary, size: 20),
-                    ),
-                    title: const Text('Tambah Kategori',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary)),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _showAddKategoriDialog();
-                    },
-                  ),
                 ],
               ),
             );
           },
-        );
-      },
-    );
-  }
-
-  void _showAddKategoriDialog() {
-    final controller = TextEditingController();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Title row with icon
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.add_rounded,
-                          color: AppTheme.primary, size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Tambah Kategori',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          Text(
-                            'Kategori baru akan menggunakan icon default',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6B7280),
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Input
-                SizedBox(
-                  height: 56,
-                  child: TextField(
-                    controller: controller,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.words,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Poppins',
-                    ),
-                    decoration: _inputDecoration('Nama kategori baru'),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            side: const BorderSide(color: Color(0xFFD1EDD8)),
-                          ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF6B7280),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final name = controller.text.trim();
-                            if (name.isEmpty || _warungId == null) return;
-
-                            try {
-                              final result =
-                                  await supabase.from('KATEGORI_PRODUK').insert({
-                                'warung_id': _warungId,
-                                'nama_kategori': name,
-                                'icon': 'Lainya.png',
-                                'sort_order': _categories.length,
-                              }).select().single();
-
-                              setState(() {
-                                _categories.add(result);
-                                _selectedKategoriId = result['id'] as String?;
-                                _selectedKategoriName = name;
-                                _selectedKategoriIcon = 'Lainya.png';
-                              });
-
-                              if (ctx.mounted) Navigator.pop(ctx);
-                            } catch (e) {
-                              if (mounted) {
-                                AppToast.showError(context, 'Gagal: $e');
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Simpan',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
@@ -1400,7 +1290,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         fontFamily: 'Poppins'),
                   ),
                   const SizedBox(height: 16),
-                  // Scrollable list
                   Expanded(
                     child: ListView(
                       controller: scrollController,
@@ -1428,29 +1317,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       ],
                     ),
                   ),
-                  // Tambah Satuan button
-                  const Divider(),
-                  ListTile(
-                    leading: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.add,
-                          color: AppTheme.primary, size: 20),
-                    ),
-                    title: const Text('Tambah Satuan',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary)),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _showAddSatuanDialog();
-                    },
-                  ),
                 ],
               ),
             );
@@ -1459,179 +1325,4 @@ class _InsertProductPageState extends State<InsertProductPage> {
       },
     );
   }
-
-  void _showAddSatuanDialog() {
-    final controller = TextEditingController();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Title row with icon
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.add_rounded,
-                          color: AppTheme.primary, size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Tambah Satuan',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          Text(
-                            'Satuan baru untuk produk Anda',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6B7280),
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Input
-                SizedBox(
-                  height: 56,
-                  child: TextField(
-                    controller: controller,
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.characters,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Poppins',
-                    ),
-                    decoration: _inputDecoration('Contoh: BOTOL'),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            side: const BorderSide(color: Color(0xFFD1EDD8)),
-                          ),
-                          child: const Text(
-                            'Batal',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF6B7280),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final name = controller.text.trim().toUpperCase();
-                            if (name.isEmpty || _warungId == null) return;
-
-                            try {
-                              final result =
-                                  await supabase.from('SATUAN_PRODUK').insert({
-                                'warung_id': _warungId,
-                                'nama_satuan': name,
-                                'sort_order': _satuanItems.length,
-                              }).select().single();
-
-                              setState(() {
-                                _satuanItems.add(result);
-                                _selectedSatuanId = result['id'] as String?;
-                                _selectedSatuan = name;
-                              });
-
-                              if (ctx.mounted) Navigator.pop(ctx);
-                            } catch (e) {
-                              if (mounted) {
-                                AppToast.showError(context, 'Gagal: $e');
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Simpan',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
-

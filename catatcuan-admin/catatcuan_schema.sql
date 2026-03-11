@@ -269,6 +269,7 @@ CREATE TABLE IF NOT EXISTS "HUTANG" (
     "warung_id" UUID NOT NULL REFERENCES "WARUNG"("id") ON DELETE CASCADE,
     "pelanggan_id" UUID NOT NULL REFERENCES "PELANGGAN"("id"),
     "penjualan_id" UUID UNIQUE REFERENCES "PENJUALAN"("id"),
+    "catatan" TEXT,
     "amount_awal" DECIMAL(15, 2) NOT NULL,
     "amount_terbayar" DECIMAL(15, 2) DEFAULT 0.00,
     "amount_sisa" DECIMAL(15, 2) NOT NULL,

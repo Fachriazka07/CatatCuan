@@ -12,7 +12,6 @@ class WelcomePage extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Top Section (Image + Text) - Takes available space
           Expanded(
             child: SafeArea(
               bottom: false,
@@ -79,25 +78,23 @@ class WelcomePage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     height: 64,
-                      child: ElevatedButton(
-                        onPressed: () => context.push('/register'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.secondary,
-                          foregroundColor: const Color(0xFF111827),
-                          elevation: 4,
-                          shadowColor: Colors.black.withOpacity(0.25),
-                          padding: EdgeInsets.zero, // Remove padding
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          textStyle: GoogleFonts.poppins(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w600,
-                            height: 1.0, // Fix vertical alignment
-                          ),
+                    child: ElevatedButton(
+                      onPressed: () => context.push('/register'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondary,
+                        foregroundColor: const Color(0xFF111827),
+                        elevation: 4,
+                        shadowColor: Colors.black.withValues(alpha: 0.25),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Center(child: Text('Daftar')),
+                        textStyle: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                      child: const Text('Daftar'),
+                    ),
                   ),
                   
                   const SizedBox(height: 20),
@@ -138,17 +135,17 @@ class WelcomePage extends StatelessWidget {
 class BottomWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    var path = Path();
+    final path = Path();
     path.lineTo(0, 60); // Start slightly down
 
     // The Wave
-    var firstControlPoint = Offset(size.width / 4, 0);
-    var firstEndPoint = Offset(size.width / 2.25, 40);
+    final firstControlPoint = Offset(size.width / 4, 0);
+    final firstEndPoint = Offset(size.width / 2.25, 40);
     path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
         firstEndPoint.dx, firstEndPoint.dy);
 
-    var secondControlPoint = Offset(size.width - (size.width / 3.25), 90);
-    var secondEndPoint = Offset(size.width, 40);
+    final secondControlPoint = Offset(size.width - (size.width / 3.25), 90);
+    final secondEndPoint = Offset(size.width, 40);
     path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
         secondEndPoint.dx, secondEndPoint.dy);
 

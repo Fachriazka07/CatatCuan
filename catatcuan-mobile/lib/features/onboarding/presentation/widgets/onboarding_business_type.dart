@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OnboardingBusinessType extends StatelessWidget {
-  final String? selectedType;
-  final ValueChanged<String> onTypeSelected;
-  final VoidCallback onNext;
-  final VoidCallback onBack;
 
   const OnboardingBusinessType({
     super.key,
@@ -15,6 +11,10 @@ class OnboardingBusinessType extends StatelessWidget {
     required this.onNext,
     required this.onBack,
   });
+  final String? selectedType;
+  final ValueChanged<String> onTypeSelected;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
 
   static final List<Map<String, dynamic>> _businessTypes = [
     {
@@ -70,7 +70,7 @@ class OnboardingBusinessType extends StatelessWidget {
             width: 286,
             height: 200,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(100),
             ),
           ),
@@ -82,7 +82,7 @@ class OnboardingBusinessType extends StatelessWidget {
             width: 265,
             height: 278,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(130),
             ),
           ),
@@ -154,7 +154,7 @@ class OnboardingBusinessType extends StatelessWidget {
                             boxShadow: [
                               if (selectedType != null)
                                 BoxShadow(
-                                  color: AppTheme.primary.withOpacity(0.3),
+                                  color: AppTheme.primary.withValues(alpha: 0.3),
                                   blurRadius: 12,
                                   offset: const Offset(0, 6),
                                 ),
@@ -165,7 +165,7 @@ class OnboardingBusinessType extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primary,
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor: AppTheme.primary.withOpacity(0.5),
+                              disabledBackgroundColor: AppTheme.primary.withValues(alpha: 0.5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -193,9 +193,9 @@ class OnboardingBusinessType extends StatelessWidget {
   }
 
   Widget _buildTypeCard(Map<String, dynamic> type) {
-    final isSelected = selectedType == type['id'];
+    final isSelected = selectedType == type['id'] as String;
     return GestureDetector(
-      onTap: () => onTypeSelected(type['id']),
+      onTap: () => onTypeSelected(type['id'] as String),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         height: 85,
@@ -210,7 +210,7 @@ class OnboardingBusinessType extends StatelessWidget {
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: AppTheme.primary.withOpacity(0.05),
+                color: AppTheme.primary.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -228,14 +228,14 @@ class OnboardingBusinessType extends StatelessWidget {
               ),
               padding: const EdgeInsets.all(10),
               child: Image.asset(
-                type['iconPath'],
+                type['iconPath'] as String,
                 fit: BoxFit.contain,
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                type['label'],
+                type['label'] as String,
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

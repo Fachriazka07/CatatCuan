@@ -1,9 +1,9 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
+import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:catatcuan_mobile/core/services/session_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,6 +14,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final supabase = Supabase.instance.client;
+  final _cache = DataCacheService.instance;
   bool isLoading = true;
   String? userName;
   String? warungName;
@@ -32,88 +33,99 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchData() async {
     setState(() => isLoading = true);
     try {
-      final userId = await SessionService.getUserId();
-      if (userId == null) return;
+      // Get warung data from cache (instant, no network)
+      final warungId = _cache.warungId;
+      if (warungId == null) return;
 
-      // Fetch User & Warung
-      final userData = await supabase
-          .from('WARUNG')
-          .select('id, nama_warung, nama_pemilik, saldo_awal, uang_kas')
-          .eq('user_id', userId)
-          .single();
+      userName = _cache.userName;
+      warungName = _cache.warungName;
+      saldoWarung = _cache.saldoAwal + _cache.uangKas;
 
-      final warungId = userData['id'];
-      userName = userData['nama_pemilik'] ?? 'User';
-      warungName = userData['nama_warung'];
-      final saldoAwal = (userData['saldo_awal'] as num?)?.toDouble() ?? 0;
-      final uangKas = (userData['uang_kas'] as num?)?.toDouble() ?? 0;
-      saldoWarung = saldoAwal + uangKas;
+      // Fetch Today's Omzet & Profit directly from PENJUALAN (real-time)
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
+      final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).toUtc().toIso8601String();
 
-      // Fetch Today's Stats from LAPORAN_HARIAN
-      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final dailyReport = await supabase
-          .from('LAPORAN_HARIAN')
-          .select('total_penjualan, profit, total_pengeluaran_bisnis, total_pengeluaran_pribadi')
+      final todaySales = await supabase
+          .from('PENJUALAN')
+          .select('total_amount, profit')
           .eq('warung_id', warungId)
-          .eq('tanggal', today)
-          .maybeSingle();
+          .gte('tanggal', todayStart)
+          .lte('tanggal', todayEnd);
 
-      if (dailyReport != null) {
-        omzet = (dailyReport['total_penjualan'] as num?)?.toDouble() ?? 0;
-        profit = (dailyReport['profit'] as num?)?.toDouble() ?? 0;
-        pengeluaran = ((dailyReport['total_pengeluaran_bisnis'] as num?)?.toDouble() ?? 0) +
-            ((dailyReport['total_pengeluaran_pribadi'] as num?)?.toDouble() ?? 0);
+      // Sum up Omzet and Profit from today's transactions
+      double todayOmzet = 0;
+      double todayProfit = 0;
+      for (final sale in todaySales) {
+        todayOmzet += (sale['total_amount'] as num?)?.toDouble() ?? 0;
+        todayProfit += (sale['profit'] as num?)?.toDouble() ?? 0;
       }
+      omzet = todayOmzet;
+      profit = todayProfit;
 
-      // Uang Warung is already calculated as saldo_awal + uang_kas above
+      // Fetch Today's Pengeluaran from PENGELUARAN table
+      final todayExpenses = await supabase
+          .from('PENGELUARAN')
+          .select('amount')
+          .eq('warung_id', warungId)
+          .gte('tanggal', todayStart)
+          .lte('tanggal', todayEnd);
+      
+      double todayPengeluaran = 0;
+      for (final exp in todayExpenses) {
+        todayPengeluaran += (exp['amount'] as num?)?.toDouble() ?? 0;
+      }
+      pengeluaran = todayPengeluaran;
+      final countRes = await supabase
+          .from('PENJUALAN')
+          .select('id')
+          .eq('warung_id', warungId)
+          .count(CountOption.exact);
+      final totalSales = countRes.count;
 
-      // Fetch Recent Transactions
-      // Combine Penjualan and Pengeluaran for recent transactions
       final sales = await supabase
           .from('PENJUALAN')
-          .select('id, total_amount, tanggal, invoice_no')
+          .select('id, total_amount, tanggal')
           .eq('warung_id', warungId)
           .order('tanggal', ascending: false)
-          .limit(5);
+          .limit(3);
 
       final expenses = await supabase
           .from('PENGELUARAN')
           .select('id, amount, tanggal, keterangan, KATEGORI_PENGELUARAN(nama_kategori)')
           .eq('warung_id', warungId)
           .order('tanggal', ascending: false)
-          .limit(5);
+          .limit(3);
 
-      List<Map<String, dynamic>> combined = [];
-      for (var s in sales) {
+      final List<Map<String, dynamic>> combined = [];
+      for (int i = 0; i < sales.length; i++) {
+        final s = sales[i];
+        final seqNum = totalSales - i;
         combined.add({
           'type': 'sale',
           'id': s['id'],
-          'title': 'Transaksi #${s['invoice_no'].toString().split('-').last}',
+          'title': 'Transaksi #${seqNum.toString()}',
           'amount': (s['total_amount'] as num).toDouble(),
-          'time': DateTime.parse(s['tanggal']),
+          'time': DateTime.parse(s['tanggal'] as String).toLocal(),
         });
       }
       for (var e in expenses) {
         combined.add({
           'type': 'expense',
           'id': e['id'],
-          'title': e['keterangan'] ?? (e['KATEGORI_PENGELUARAN']?['nama_kategori'] ?? 'Pengeluaran'),
+          'title': (e['keterangan'] as String?) ?? ((e['KATEGORI_PENGELUARAN'] as Map<String, dynamic>?)?['nama_kategori'] as String? ?? 'Pengeluaran'),
           'amount': -(e['amount'] as num).toDouble(),
-          'time': DateTime.parse(e['tanggal']),
+          'time': DateTime.parse(e['tanggal'] as String).toLocal(),
         });
       }
       combined.sort((a, b) => (b['time'] as DateTime).compareTo(a['time'] as DateTime));
-      recentTransactions = combined.take(5).toList();
+      recentTransactions = combined.take(4).toList();
 
     } catch (e) {
       debugPrint('Error fetching data: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
-  }
-
-  String _formatCurrency(double value) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(value);
   }
 
   @override
@@ -128,10 +140,8 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header section with gradient background (scrolls with content)
                 Stack(
                   children: [
-                    // Gradient background
                     Container(
                       height: 240,
                       decoration: const BoxDecoration(
@@ -147,7 +157,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ),
-                    // Header content on top of gradient
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
@@ -161,7 +170,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                // Rest of content (no gradient behind)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -192,7 +200,6 @@ class _HomePageState extends State<HomePage> {
       children: [
         Row(
           children: [
-            // Logo — transparent background
             Image.asset(
               'assets/logo.png',
               width: 40,
@@ -229,24 +236,23 @@ class _HomePageState extends State<HomePage> {
             // Notification bell (plain icon, no background)
             const Icon(Icons.notifications_outlined, color: Colors.white, size: 28),
             const SizedBox(width: 8),
-            // Pusat Bantuan — flush right, rounded left only
             Transform.translate(
-              offset: const Offset(16, 0), // push to screen edge (cancels parent padding)
+              offset: const Offset(16, 0),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     bottomLeft: Radius.circular(20),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.support_agent_outlined, color: Colors.white, size: 22),
-                    const SizedBox(width: 6),
-                    const Text(
+                    Icon(Icons.support_agent_outlined, color: Colors.white, size: 22),
+                    SizedBox(width: 6),
+                    Text(
                       'Pusat\nBantuan',
                       style: TextStyle(
                         color: Colors.white,
@@ -299,7 +305,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 15,
                 spreadRadius: 1,
                 offset: const Offset(0, 4),
@@ -347,79 +353,92 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Icon left + title truly centered (independent positioning)
-            SizedBox(
-              height: 28,
-              child: Stack(
+            // Title truly centered without icon
+            Center(
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15, // Increased size
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ),
+          // Nominal — truly centered around main digit
+          Expanded(
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min, // Keep row tight
+                crossAxisAlignment: CrossAxisAlignment.start, // Align to top for superscript effect
                 children: [
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Icon(icon, size: 28, color: iconColor),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomCenter,
+                  // The superscript Rp
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2, right: 2), // Slightly push down to match top of '0'
                     child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
+                      'Rp',
+                      style: TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
                         fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
+                  
+                  // Main number block
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end, // Align nominal and sub-nominal bottoms
+                    children: [
+                      Text(
+                        mainVal,
+                        style: const TextStyle(
+                          fontSize: 28, 
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2E7D32),
+                          height: 1.0, 
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      // Sub digits — primary color
+                      if (subVal.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 1), 
+                          child: Text(
+                            subVal,
+                            style: const TextStyle(
+                              fontSize: 22, 
+                              fontWeight: FontWeight.w600, 
+                              color: AppTheme.primary,
+                              height: 1.0, 
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  // Invisible Rp to balance the row and keep the main number perfectly centered
+                  const Opacity(
+                    opacity: 0,
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 2, left: 2),
+                      child: Text(
+                        'Rp',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            // Nominal — truly centered in remaining space
-            Expanded(
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        'Rp',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.primary,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                    ),
-                    // Main digit — dark green #2E7D32
-                    Text(
-                      mainVal,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E7D32),
-                        height: 1.0,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                    // Sub digits — primary color
-                    if (subVal.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          subVal,
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.normal,
-                            color: AppTheme.primary,
-                            height: 1.0,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
+          ),
           ],
         ),
       ),
@@ -428,7 +447,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSalesBanner() {
     return GestureDetector(
-      onTap: () => context.push('/transaction'),
+      onTap: () => context.push('/transaksi/pos'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -437,7 +456,7 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -519,7 +538,7 @@ class _HomePageState extends State<HomePage> {
                   border: Border.all(color: const Color(0xFFD1EDD8)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 5,
                       offset: const Offset(0, 2),
                     ),
@@ -537,10 +556,13 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+            ),
           ),
         ],
       ),
@@ -553,7 +575,12 @@ class _HomePageState extends State<HomePage> {
       children: [
         const Text(
           'Transaksi Terakhir',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600, // Semibold
+            color: Color(0xFF111827),
+            fontFamily: 'Poppins',
+          ),
         ),
         const SizedBox(height: 16),
         if (isLoading)
@@ -572,15 +599,26 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context, index) {
               final tx = recentTransactions[index];
               final isSale = tx['type'] == 'sale';
+              final borderColor = isSale ? const Color(0xFFD1EDD8) : const Color(0xFFDC2626);
+              final iconColor = isSale ? AppTheme.primary : const Color(0xFFDC2626);
+              
+              // We use NumberFormat with custom properties to enforce the exact layout required by the user
+              final formatCurrency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+              final amountStr = formatCurrency.format((tx['amount'] as num).abs());
+
+              // Time formatting
+              final timeStr = DateFormat('HH.mm').format(tx['time'] as DateTime);
+
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                height: 80,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFD1EDD8)),
+                  border: Border.all(color: borderColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -588,43 +626,61 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
-                            border: Border.all(color: isSale ? AppTheme.primary : AppTheme.error, width: 2),
-                            borderRadius: BorderRadius.circular(12),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: iconColor, width: 2),
                           ),
-                          child: Icon(
-                            isSale ? Icons.arrow_upward : Icons.arrow_downward,
-                            color: isSale ? AppTheme.primary : AppTheme.error,
-                            size: 20,
+                          child: Center(
+                            child: Icon(
+                              isSale ? Icons.arrow_upward : Icons.arrow_downward,
+                              color: iconColor,
+                              size: 24,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              tx['title'],
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Poppins'),
+                              tx['title'] as String,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF111827),
+                                fontFamily: 'Poppins',
+                                height: 1.2,
+                              ),
                             ),
+                            const SizedBox(height: 4),
                             Text(
-                              DateFormat('HH.mm').format(tx['time']),
-                              style: const TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Poppins'),
+                              timeStr,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF6B7280),
+                                fontFamily: 'Poppins',
+                                height: 1.0,
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
                     Text(
-                      (isSale ? '+' : '') + _formatCurrency(tx['amount']),
+                      '${isSale ? '+' : '-'}$amountStr',
                       style: TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isSale ? AppTheme.primary : AppTheme.error,
+                        color: iconColor,
                         fontFamily: 'Poppins',
                       ),
                     ),
@@ -648,7 +704,7 @@ class _HomePageState extends State<HomePage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, -4),
           ),
@@ -661,6 +717,7 @@ class _HomePageState extends State<HomePage> {
           _buildNavItem(Icons.inventory_2_outlined, 'Produk', false, () => context.push('/produk')),
           GestureDetector(
             onTap: () {
+              context.push('/transaksi/pos');
             },
             child: Transform.translate(
               offset: const Offset(0, -20),
@@ -672,7 +729,7 @@ class _HomePageState extends State<HomePage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF50C878).withOpacity(0.4),
+                      color: const Color(0xFF50C878).withValues(alpha: 0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

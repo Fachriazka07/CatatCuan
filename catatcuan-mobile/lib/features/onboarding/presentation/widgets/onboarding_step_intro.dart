@@ -1,17 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:catatcuan_mobile/core/widgets/gradient_background.dart';
-
-/// Reusable step intro screen shown before each onboarding form.
-/// Displays an illustration, title, subtitle, step dots, and a CTA button.
 class OnboardingStepIntro extends StatelessWidget {
-  final String imagePath;
-  final String title;
-  final String subtitle;
-  final String buttonText;
-  final int currentStep; // 1-based (1, 2, 3)
-  final int totalSteps;
-  final VoidCallback onPressed;
 
   const OnboardingStepIntro({
     super.key,
@@ -23,6 +13,13 @@ class OnboardingStepIntro extends StatelessWidget {
     required this.totalSteps,
     required this.onPressed,
   });
+  final String imagePath;
+  final String title;
+  final String subtitle;
+  final String buttonText;
+  final int currentStep; // 1-based (1, 2, 3)
+  final int totalSteps;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +95,7 @@ class OnboardingStepIntro extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isActive
                               ? const Color(0xFFF8BD00)
-                              : Colors.white.withOpacity(0.4),
+                              : Colors.white.withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(5),
                         ),
                       );
