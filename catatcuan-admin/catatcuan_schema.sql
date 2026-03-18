@@ -220,8 +220,11 @@ CREATE TABLE IF NOT EXISTS "PENJUALAN" (
     "updated_at" TIMESTAMPTZ DEFAULT now(),
     UNIQUE("warung_id", "invoice_no")
 );
+ALTER TABLE "PENJUALAN"
+    ADD COLUMN IF NOT EXISTS "profit" DECIMAL(15, 2) DEFAULT 0.00;
 COMMENT ON TABLE "PENJUALAN" IS 'Sales transaction header.';
 COMMENT ON COLUMN "PENJUALAN"."pelanggan_id" IS 'Can be NULL for anonymous cash sales.';
+COMMENT ON COLUMN "PENJUALAN"."profit" IS 'Net profit snapshot for the sale after discount.';
 
 CREATE TABLE IF NOT EXISTS "PENJUALAN_ITEM" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -233,9 +236,12 @@ CREATE TABLE IF NOT EXISTS "PENJUALAN_ITEM" (
     "subtotal" DECIMAL(15, 2) NOT NULL,
     "created_at" TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE "PENJUALAN_ITEM"
+    ADD COLUMN IF NOT EXISTS "harga_modal" DECIMAL(15, 2) DEFAULT 0.00;
 COMMENT ON TABLE "PENJUALAN_ITEM" IS 'Individual items within a sales transaction.';
 COMMENT ON COLUMN "PENJUALAN_ITEM"."nama_produk" IS 'Snapshot of product name at time of sale.';
 COMMENT ON COLUMN "PENJUALAN_ITEM"."harga_satuan" IS 'Snapshot of price at time of sale.';
+COMMENT ON COLUMN "PENJUALAN_ITEM"."harga_modal" IS 'Snapshot of cost price at time of sale.';
 
 -- ==================== PENGELUARAN ====================
 

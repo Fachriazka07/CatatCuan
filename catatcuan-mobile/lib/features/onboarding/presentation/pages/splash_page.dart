@@ -45,7 +45,7 @@ class _SplashPageState extends State<SplashPage> {
       final warung = await Supabase.instance.client
           .from('WARUNG')
           .select()
-          .eq('user_id', userId!)
+          .eq('user_id', userId)
           .maybeSingle();
 
       if (warung == null) {
@@ -58,7 +58,7 @@ class _SplashPageState extends State<SplashPage> {
       // Step 4: Preload ALL data into cache
       if (mounted) setState(() { _progress = 0.5; _statusText = 'Memuat data warung...'; });
 
-      await DataCacheService.instance.loadAll(userId!);
+      await DataCacheService.instance.loadAll(userId);
 
       if (mounted) setState(() { _progress = 1.0; _statusText = 'Siap!'; });
       await Future<void>.delayed(const Duration(milliseconds: 200));

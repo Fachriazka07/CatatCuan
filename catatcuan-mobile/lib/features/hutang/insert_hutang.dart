@@ -120,7 +120,7 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
       return List<Map<String, dynamic>>.from(res);
     }
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -525,7 +525,9 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontFamily: 'Poppins',
-                      color: isSelected ? AppTheme.primary.withOpacity(0.8) : const Color(0xFF6B7280),
+                      color: isSelected
+                          ? AppTheme.primary.withValues(alpha: 0.8)
+                          : const Color(0xFF6B7280),
                     ),
                   ),
                 ],

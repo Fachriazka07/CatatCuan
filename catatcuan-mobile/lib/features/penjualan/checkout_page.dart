@@ -7,12 +7,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class CheckoutPage extends StatefulWidget {
-  final Map<String, int> initialCart;
-
   const CheckoutPage({
     super.key,
     required this.initialCart,
   });
+
+  final Map<String, int> initialCart;
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -199,37 +199,43 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'notes': _discount > 0 ? 'Diskon: $_discount' : null,
       };
 
-      final insertedPenjualan = await _supabase.from('PENJUALAN').insert(penjualanData).select().single();
-      final penjualanId = insertedPenjualan['id'];
+      final insertedPenjualan =
+          await _supabase.from('PENJUALAN').insert(penjualanData).select().single();
+      final String penjualanId = insertedPenjualan['id'].toString();
 
-      // 2. Insert PENJUALAN_ITEM (with harga_modal for profit tracking)
+      // 2. Insert PENJUALAN_ITEM
       final List<Map<String, dynamic>> itemsToInsert = [];
-      double totalProfit = 0;
+      num totalProfit = 0;
       for (var p in _cartProducts) {
         final pid = p['id'] as String;
         final qty = _cart[pid] ?? 0;
         final price = num.parse((p['harga_jual'] ?? 0).toString());
-        final hargaModal = num.parse((p['harga_modal'] ?? 0).toString());
-        final itemProfit = (price - hargaModal) * qty;
-        totalProfit += itemProfit;
-        
+        final modal = num.parse((p['harga_modal'] ?? 0).toString());
+
+        totalProfit += (price - modal) * qty;
         itemsToInsert.add({
           'penjualan_id': penjualanId,
           'produk_id': pid,
           'nama_produk': p['nama_produk'],
           'quantity': qty,
           'harga_satuan': price,
-          'harga_modal': hargaModal,
+          'harga_modal': modal,
           'subtotal': price * qty,
         });
       }
-      
+
+      totalProfit -= _discount;
       await _supabase.from('PENJUALAN_ITEM').insert(itemsToInsert);
-      
-      // Update PENJUALAN with profit
-      await _supabase.from('PENJUALAN').update({
-        'profit': totalProfit,
-      }).eq('id', penjualanId);
+
+      try {
+        await _supabase.from('PENJUALAN').update({
+          'profit': totalProfit,
+        }).eq('id', penjualanId);
+      } catch (e) {
+        debugPrint('Profit column not updated: $e');
+      }
+
+      insertedPenjualan['profit'] = totalProfit;
 
       // 3. Insert HUTANG if necessary
       if (_paymentMethod == 'HUTANG') {
@@ -244,13 +250,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'amount_sisa': sisaHutang,
           'tanggal_jatuh_tempo': _jatuhTempo?.toIso8601String().split('T')[0],
           'status': sisaHutang <= 0 ? 'lunas' : 'belum_lunas',
-          'jenis': 'PIUTANG',
         };
         
         await _supabase.from('HUTANG').insert(hutangData);
 
         // Update PELANGGAN total_hutang
-        await _supabase.rpc('increment_field', params: {
+        await _supabase.rpc<dynamic>('increment_field', params: {
           'table_name': 'PELANGGAN',
           'row_id': _selectedCustomerId,
           'field_name': 'total_hutang',
@@ -267,7 +272,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         final pid = p['id'] as String;
         final qty = _cart[pid] ?? 0;
         final currentStock = num.parse((p['stok_saat_ini'] ?? 0).toString());
-        final newStock = (currentStock - qty).clamp(0, double.infinity);
+        final newStock = (currentStock - qty).clamp(0, double.infinity).toInt();
         
         await _supabase.from('PRODUK').update({
           'stok_saat_ini': newStock,
@@ -278,30 +283,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // 5. Insert BUKU_KAS entry (cash in)
       if (_paymentMethod == 'TUNAI') {
         // Tunai: full net total masuk
-        await _supabase.from('BUKU_KAS').insert({
-          'warung_id': warungId,
-          'tipe': 'masuk',
-          'sumber': 'penjualan',
-          'reference_id': penjualanId,
-          'reference_type': 'PENJUALAN',
-          'amount': _netTotal,
-          'saldo_setelah': (_cache.uangKas + _netTotal),
-          'keterangan': 'Penjualan Tunai - $invoiceNo',
-        });
         _cache.uangKas += _netTotal.toDouble();
       } else {
         // Hutang: only DP goes into kas
         if (dp > 0) {
-          await _supabase.from('BUKU_KAS').insert({
-            'warung_id': warungId,
-            'tipe': 'masuk',
-            'sumber': 'penjualan',
-            'reference_id': penjualanId,
-            'reference_type': 'PENJUALAN',
-            'amount': dp,
-            'saldo_setelah': (_cache.uangKas + dp),
-            'keterangan': 'DP Hutang - $invoiceNo',
-          });
           _cache.uangKas += dp.toDouble();
         }
       }

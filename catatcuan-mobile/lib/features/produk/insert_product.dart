@@ -9,12 +9,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class InsertProductPage extends StatefulWidget {
-  final String? initialBarcode;
-  
   const InsertProductPage({
     super.key,
     this.initialBarcode,
   });
+
+  final String? initialBarcode;
 
   @override
   State<InsertProductPage> createState() => _InsertProductPageState();

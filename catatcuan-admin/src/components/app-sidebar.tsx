@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   FolderTree,
+  Wallet,
   Ruler,
   Settings,
   LogOut,
@@ -40,6 +41,11 @@ const menuItems = [
     title: 'Master Kategori',
     url: '/dashboard/master-kategori',
     icon: FolderTree,
+  },
+  {
+    title: 'Master Pengeluaran',
+    url: '/dashboard/master-pengeluaran',
+    icon: Wallet,
   },
   {
     title: 'Master Satuan',

@@ -23,9 +23,13 @@ class DataCacheService {
   String? warungName;
   double saldoAwal = 0;
   double uangKas = 0;
+  double uangKasOperasional = 0;
 
   /// Kategori Produk (user's categories for this warung)
   List<Map<String, dynamic>> categories = [];
+
+  /// Kategori Pengeluaran (user's categories for this warung)
+  List<Map<String, dynamic>> expenseCategories = [];
 
   /// Satuan Produk (user's satuan for this warung)
   List<Map<String, dynamic>> satuanItems = [];
@@ -43,24 +47,16 @@ class DataCacheService {
   Future<void> loadAll(String userId) async {
     try {
       // 1. Load warung data
-      final warungData = await _supabase
-          .from('WARUNG')
-          .select('id, nama_warung, nama_pemilik, saldo_awal, uang_kas')
-          .eq('user_id', userId)
-          .single();
-
-      warungId = warungData['id'] as String;
-      userName = (warungData['nama_pemilik'] as String?) ?? 'User';
-      warungName = warungData['nama_warung'] as String?;
-      saldoAwal = (warungData['saldo_awal'] as num?)?.toDouble() ?? 0;
-      uangKas = (warungData['uang_kas'] as num?)?.toDouble() ?? 0;
+      await refreshWarungData(userId);
 
       // 2. Sync master data (categories & satuan)
       await syncMasterCategories();
       await syncMasterSatuan();
+      await syncMasterExpenseCategories();
 
       // 3. Load categories
       await refreshCategories();
+      await refreshExpenseCategories();
 
       // 4. Load satuan
       await refreshSatuan();
@@ -70,6 +66,7 @@ class DataCacheService {
 
       _isLoaded = true;
       debugPrint('[DataCache] All data loaded: ${categories.length} categories, '
+          '${expenseCategories.length} expense categories, '
           '${satuanItems.length} satuan, ${products.length} products');
     } catch (e) {
       debugPrint('[DataCache] Error loading data: $e');
@@ -138,6 +135,76 @@ class DataCacheService {
     }
   }
 
+  /// Sync master expense categories from admin → user's KATEGORI_PENGELUARAN.
+  Future<void> syncMasterExpenseCategories() async {
+    if (warungId == null) return;
+
+    try {
+      final allMasterData = await _supabase
+          .from('MASTER_KATEGORI_PENGELUARAN')
+          .select('id, nama_kategori, tipe, icon, sort_order, is_active');
+
+      final userData = await _supabase
+          .from('KATEGORI_PENGELUARAN')
+          .select('id, nama_kategori, tipe, icon, sort_order, master_kategori_id')
+          .eq('warung_id', warungId!);
+
+      final userByMasterId = <String, Map<String, dynamic>>{};
+      for (final u in List<Map<String, dynamic>>.from(userData)) {
+        final mid = u['master_kategori_id']?.toString();
+        if (mid != null) userByMasterId[mid] = u;
+      }
+
+      for (final master in List<Map<String, dynamic>>.from(allMasterData)) {
+        final masterId = master['id'].toString();
+        final isActive = master['is_active'] == true;
+        final existing = userByMasterId[masterId];
+
+        if (isActive) {
+          if (existing == null) {
+            await _supabase.from('KATEGORI_PENGELUARAN').insert({
+              'warung_id': warungId,
+              'nama_kategori': master['nama_kategori'],
+              'tipe': master['tipe'],
+              'icon': master['icon'],
+              'sort_order': master['sort_order'] ?? 0,
+              'master_kategori_id': masterId,
+            });
+          } else {
+            if (existing['nama_kategori'] != master['nama_kategori'] ||
+                existing['icon'] != master['icon'] ||
+                existing['tipe'] != master['tipe']) {
+              await _supabase.from('KATEGORI_PENGELUARAN').update({
+                'nama_kategori': master['nama_kategori'],
+                'tipe': master['tipe'],
+                'icon': master['icon'],
+                'sort_order': master['sort_order'] ?? 0,
+              }).eq('id', existing['id'] as Object);
+            }
+          }
+        } else {
+          if (existing != null) {
+            // Check if there are expenses using this category
+            final expenses = await _supabase
+                .from('PENGELUARAN')
+                .select('id')
+                .eq('kategori_id', existing['id'] as Object)
+                .limit(1);
+            
+            if ((expenses as List).isEmpty) {
+              await _supabase
+                  .from('KATEGORI_PENGELUARAN')
+                  .delete()
+                  .eq('id', existing['id'] as Object);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[DataCache] Error syncing master expense categories: $e');
+    }
+  }
+
   /// Sync master satuan from admin → user's SATUAN_PRODUK.
   Future<void> syncMasterSatuan() async {
     if (warungId == null) return;
@@ -195,6 +262,27 @@ class DataCacheService {
 
   // ==================== REFRESH METHODS ====================
 
+  /// Refresh warung data from Supabase.
+  Future<void> refreshWarungData(String userId) async {
+    try {
+      final warungData = await _supabase
+          .from('WARUNG')
+          .select('id, nama_warung, nama_pemilik, saldo_awal, uang_kas, uang_kas_operasional')
+          .eq('user_id', userId)
+          .single();
+
+      warungId = warungData['id'] as String;
+      userName = (warungData['nama_pemilik'] as String?) ?? 'User';
+      warungName = warungData['nama_warung'] as String?;
+      saldoAwal = (warungData['saldo_awal'] as num?)?.toDouble() ?? 0;
+      uangKas = (warungData['uang_kas'] as num?)?.toDouble() ?? 0;
+      uangKasOperasional = (warungData['uang_kas_operasional'] as num?)?.toDouble() ?? 0;
+    } catch (e) {
+      debugPrint('[DataCache] Error refreshing warung data: $e');
+      rethrow;
+    }
+  }
+
   /// Refresh categories from Supabase into cache.
   Future<void> refreshCategories() async {
     if (warungId == null) return;
@@ -209,6 +297,24 @@ class DataCacheService {
       debugPrint('[DataCache] Categories refreshed: ${categories.length}');
     } catch (e) {
       debugPrint('[DataCache] Error refreshing categories: $e');
+    }
+  }
+
+  /// Refresh expense categories from Supabase into cache.
+  Future<void> refreshExpenseCategories() async {
+    if (warungId == null) return;
+    try {
+      final data = await _supabase
+          .from('KATEGORI_PENGELUARAN')
+          .select('id, nama_kategori, icon, tipe, sort_order')
+          .eq('warung_id', warungId!)
+          .order('tipe', ascending: false) // Business first
+          .order('sort_order', ascending: true);
+
+      expenseCategories = List<Map<String, dynamic>>.from(data);
+      debugPrint('[DataCache] Expense categories refreshed: ${expenseCategories.length}');
+    } catch (e) {
+      debugPrint('[DataCache] Error refreshing expense categories: $e');
     }
   }
 
@@ -287,7 +393,9 @@ class DataCacheService {
     warungName = null;
     saldoAwal = 0;
     uangKas = 0;
+    uangKasOperasional = 0;
     categories = [];
+    expenseCategories = [];
     satuanItems = [];
     products = [];
     _isLoaded = false;

@@ -7,46 +7,56 @@ import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class ReceiptPage extends StatelessWidget {
-  final Map<String, dynamic> transactionData;
-
   const ReceiptPage({super.key, required this.transactionData});
+
+  final Map<String, dynamic> transactionData;
 
   @override
   Widget build(BuildContext context) {
     final cache = DataCacheService.instance;
     final namaWarung = cache.warungName ?? 'NAMA WARUNG';
-    final alamatWarung = ''; // Not cached yet in DataCacheService
+    const alamatWarung = ''; // Not cached yet in DataCacheService
 
-    final num diskon = transactionData['diskon'] ?? 0;
-    final num netTotal = transactionData['net_total'] ?? 0;
-    final String paymentMethod = transactionData['payment_method'] ?? 'TUNAI';
-    final String? customerName = transactionData['customer_name'] as String?;
+    final num diskon = num.tryParse(transactionData['diskon']?.toString() ?? '0') ?? 0;
+    final num netTotal = num.tryParse(transactionData['net_total']?.toString() ?? '0') ?? 0;
+    final String paymentMethod =
+        transactionData['payment_method']?.toString() ?? 'TUNAI';
+    final String? customerName = transactionData['customer_name']?.toString();
     
     // Penjualan Master Data
-    final penjualan = transactionData['penjualan'] as Map<String, dynamic>? ?? {};
-    final invoiceNo = penjualan['invoice_no'] as String? ?? 'INV-XXXX';
-    final totalAmount = penjualan['total_amount'] as num? ?? 0;
-    final amountPaid = penjualan['amount_paid'] as num? ?? 0;
-    final amountChange = penjualan['amount_change'] as num? ?? 0;
+    final penjualan =
+        transactionData['penjualan'] as Map<String, dynamic>? ?? {};
+    final invoiceNo = penjualan['invoice_no']?.toString() ?? 'INV-XXXX';
+    final totalAmount = num.tryParse(penjualan['total_amount']?.toString() ?? '0') ?? 0;
+    final amountPaid = num.tryParse(penjualan['amount_paid']?.toString() ?? '0') ?? 0;
+    final amountChange = num.tryParse(penjualan['amount_change']?.toString() ?? '0') ?? 0;
     
     // Parse date safely
     DateTime? tanggalTx;
     if (penjualan['tanggal'] != null) {
       tanggalTx = DateTime.tryParse(penjualan['tanggal'].toString());
+    } else if (penjualan['created_at'] != null) {
+      tanggalTx = DateTime.tryParse(penjualan['created_at'].toString());
     }
     tanggalTx ??= DateTime.now();
     final tanggalStr = DateFormat('dd MMM yyyy HH:mm').format(tanggalTx);
 
-    final items = transactionData['items'] as List<dynamic>? ?? [];
+    final items = List<Map<String, dynamic>>.from(
+      transactionData['items'] as List? ?? const <Map<String, dynamic>>[],
+    );
 
-    final currencyCcy = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyCcy = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
               colors: [AppTheme.primary, Color(0xFF3A9B6B)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -77,11 +87,11 @@ class ReceiptPage extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24),
             color: AppTheme.primary.withValues(alpha: 0.1),
-            child: Column(
+            child: const Column(
               children: [
-                const Icon(Icons.check_circle, color: AppTheme.primary, size: 64),
-                const SizedBox(height: 12),
-                const Text(
+                Icon(Icons.check_circle, color: AppTheme.primary, size: 64),
+                SizedBox(height: 12),
+                Text(
                   'Pembayaran Sukses!',
                   style: TextStyle(
                     fontSize: 20,
@@ -124,9 +134,9 @@ class ReceiptPage extends StatelessWidget {
                           ),
                           if (alamatWarung.isNotEmpty) ...[
                             const SizedBox(height: 4),
-                            Text(
+                            const Text(
                               alamatWarung,
-                              style: const TextStyle(fontSize: 12, fontFamily: 'Courier', color: Colors.grey),
+                              style: TextStyle(fontSize: 12, fontFamily: 'Courier', color: Colors.grey),
                               textAlign: TextAlign.center,
                             ),
                           ],

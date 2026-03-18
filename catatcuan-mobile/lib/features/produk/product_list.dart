@@ -128,7 +128,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   }
 
   void _showLowStockPopup() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -143,8 +143,8 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFEE2E2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 28),
@@ -215,9 +215,9 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Sisa: ',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontFamily: 'Poppins',
                                         color: Color(0xFF6B7280),
@@ -330,7 +330,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   }
 
   void _showAddOptions() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(

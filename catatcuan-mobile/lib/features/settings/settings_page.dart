@@ -54,7 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   onTap: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) => AlertDialog(
                         title: const Text('Konfirmasi', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),

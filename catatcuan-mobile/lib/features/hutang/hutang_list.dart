@@ -16,13 +16,28 @@ class _HutangListPageState extends State<HutangListPage> {
   int _selectedTab = 0;
   final _cache = DataCacheService.instance;
   final _hutangService = HutangService();
-  
+
   List<Map<String, dynamic>> _allData = [];
   bool _isLoading = true;
 
+  DateTime? _tryParseSafeDate(dynamic value) {
+    final raw = (value ?? '').toString().trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+
+    final sanitized = raw
+        .replaceAll('(', '')
+        .replaceAll(')', '')
+        .replaceAll('"', '')
+        .trim();
+
+    return DateTime.tryParse(sanitized)?.toLocal();
+  }
+
   @override
   void initState() {
-    super.initState();  
+    super.initState();
     _fetchData();
   }
 
@@ -73,7 +88,10 @@ class _HutangListPageState extends State<HutangListPage> {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
 
     for (final item in filtered) {
-      final key = item['pelanggan_id']?.toString() ?? item['nama_kontak']?.toString() ?? 'unknown';
+      final key =
+          item['pelanggan_id']?.toString() ??
+          item['nama_kontak']?.toString() ??
+          'unknown';
       grouped.putIfAbsent(key, () => []).add(item);
     }
 
@@ -81,9 +99,11 @@ class _HutangListPageState extends State<HutangListPage> {
     final List<Map<String, dynamic>> groups = [];
     for (final entry in grouped.entries) {
       final items = entry.value;
-      final name = items.first['nama_kontak'] as String? ??
-          (items.first['PELANGGAN']?['nama'] as String? ?? 'Tanpa Nama');
-      
+      final pelanggan = items.first['PELANGGAN'] as Map<String, dynamic>?;
+      final name =
+          items.first['nama_kontak'] as String? ??
+          (pelanggan?['nama'] as String? ?? 'Tanpa Nama');
+
       double totalAwal = 0;
       double totalTerbayar = 0;
       double totalSisa = 0;
@@ -105,13 +125,21 @@ class _HutangListPageState extends State<HutangListPage> {
     }
 
     // Sort groups alphabetically by name
-    groups.sort((a, b) => (a['name'] as String).toLowerCase().compareTo((b['name'] as String).toLowerCase()));
+    groups.sort(
+      (a, b) => (a['name'] as String).toLowerCase().compareTo(
+        (b['name'] as String).toLowerCase(),
+      ),
+    );
     return groups;
   }
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -122,8 +150,12 @@ class _HutangListPageState extends State<HutangListPage> {
               _buildHeader(),
               _buildTabSelector(),
               Expanded(
-                child: _isLoading 
-                    ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primary,
+                        ),
+                      )
                     : _buildList(currencyFormatter),
               ),
             ],
@@ -207,7 +239,12 @@ class _HutangListPageState extends State<HutangListPage> {
     );
   }
 
-  Widget _buildTabItem(int index, String label, {bool isFirst = false, bool isLast = false}) {
+  Widget _buildTabItem(
+    int index,
+    String label, {
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
     final isSelected = _selectedTab == index;
     return Expanded(
       child: GestureDetector(
@@ -227,13 +264,15 @@ class _HutangListPageState extends State<HutangListPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (isSelected) 
+              if (isSelected)
                 const Icon(Icons.check, color: AppTheme.primary, size: 18),
               if (isSelected) const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? AppTheme.primary : const Color(0xFF6B7280),
+                  color: isSelected
+                      ? AppTheme.primary
+                      : const Color(0xFF6B7280),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   fontFamily: 'Poppins',
@@ -257,7 +296,11 @@ class _HutangListPageState extends State<HutangListPage> {
             Icon(Icons.receipt_long, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
             Text(
-              'Belum ada data ${_selectedTab == 0 ? "Hutang" : _selectedTab == 1 ? "Piutang" : "Lunas"}',
+              'Belum ada data ${_selectedTab == 0
+                  ? "Hutang"
+                  : _selectedTab == 1
+                  ? "Piutang"
+                  : "Lunas"}',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 14,
@@ -285,10 +328,13 @@ class _HutangListPageState extends State<HutangListPage> {
     final double totalAwal = group['total_awal'] as double;
     final double totalTerbayar = group['total_terbayar'] as double;
     final double totalSisa = group['total_sisa'] as double;
-    final List<Map<String, dynamic>> items = group['items'] as List<Map<String, dynamic>>;
+    final List<Map<String, dynamic>> items =
+        group['items'] as List<Map<String, dynamic>>;
     final int count = group['count'] as int;
     final bool isExpanded = _expandedGroups.contains(key);
-    final double progress = totalAwal > 0 ? (totalTerbayar / totalAwal).clamp(0.0, 1.0) : 0;
+    final double progress = totalAwal > 0
+        ? (totalTerbayar / totalAwal).clamp(0.0, 1.0)
+        : 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -311,7 +357,9 @@ class _HutangListPageState extends State<HutangListPage> {
             borderRadius: BorderRadius.circular(12),
             onTap: () {
               if (count == 1) {
-                context.push('/hutang/detail', extra: items.first).then((_) => _fetchData());
+                context
+                    .push('/hutang/detail', extra: items.first)
+                    .then((_) => _fetchData());
               } else {
                 setState(() {
                   if (isExpanded) {
@@ -336,11 +384,21 @@ class _HutangListPageState extends State<HutangListPage> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2F6FF),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                          border: Border.all(
+                            color: const Color(0xFFD1EDD8),
+                            width: 1.5,
+                          ),
                         ),
                         child: Text(
-                          name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primary, fontFamily: 'Poppins'),
+                          name.isNotEmpty
+                              ? name.substring(0, 1).toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary,
+                            fontFamily: 'Poppins',
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -372,7 +430,9 @@ class _HutangListPageState extends State<HutangListPage> {
                                     ),
                                   ),
                                   Icon(
-                                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                    isExpanded
+                                        ? Icons.keyboard_arrow_up
+                                        : Icons.keyboard_arrow_down,
                                     color: AppTheme.primary,
                                     size: 16,
                                   ),
@@ -384,7 +444,9 @@ class _HutangListPageState extends State<HutangListPage> {
                       Text(
                         formatter.format(totalAwal),
                         style: TextStyle(
-                          color: _selectedTab == 1 ? AppTheme.primary : const Color(0xFFF8BD00),
+                          color: _selectedTab == 1
+                              ? AppTheme.primary
+                              : const Color(0xFFF8BD00),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'Poppins',
@@ -395,8 +457,16 @@ class _HutangListPageState extends State<HutangListPage> {
                   // Bottom section: amounts or lunas badge
                   if (_selectedTab != 2) ...[
                     const SizedBox(height: 4),
-                    _buildAmountRow(_selectedTab == 1 ? 'Diterima' : 'Terbayar', formatter.format(totalTerbayar), AppTheme.primary),
-                    _buildAmountRow(_selectedTab == 1 ? 'Sisa Piutang' : 'Kekurangan', formatter.format(totalSisa), AppTheme.error),
+                    _buildAmountRow(
+                      _selectedTab == 1 ? 'Diterima' : 'Terbayar',
+                      formatter.format(totalTerbayar),
+                      AppTheme.primary,
+                    ),
+                    _buildAmountRow(
+                      _selectedTab == 1 ? 'Sisa Piutang' : 'Kekurangan',
+                      formatter.format(totalSisa),
+                      AppTheme.error,
+                    ),
                     const SizedBox(height: 8),
                     _buildProgressBar(progress),
                   ] else ...[
@@ -404,7 +474,10 @@ class _HutangListPageState extends State<HutangListPage> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFD1EDD8),
                             borderRadius: BorderRadius.circular(30),
@@ -412,7 +485,11 @@ class _HutangListPageState extends State<HutangListPage> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle, color: AppTheme.primary, size: 14),
+                              Icon(
+                                Icons.check_circle,
+                                color: AppTheme.primary,
+                                size: 14,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'LUNAS TERBAYAR',
@@ -439,11 +516,17 @@ class _HutangListPageState extends State<HutangListPage> {
             Container(
               decoration: const BoxDecoration(
                 color: Color(0xFFFAFBFC),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(12),
+                ),
               ),
               child: Column(
                 children: [
-                  const Divider(height: 1, thickness: 1, color: Color(0xFFD1EDD8)),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFD1EDD8),
+                  ),
                   ...items.map((item) => _buildSubItem(item, formatter)),
                   const SizedBox(height: 8),
                 ],
@@ -462,8 +545,9 @@ class _HutangListPageState extends State<HutangListPage> {
     final jenis = item['jenis'] as String? ?? 'HUTANG';
     final isPiutang = jenis.toUpperCase() == 'PIUTANG';
     final isLunas = item['status'] == 'lunas';
-    final createdAt = item['created_at'] != null 
-        ? DateFormat('dd MMM yyyy').format(DateTime.parse(item['created_at']).toLocal())
+    final createdAtDate = _tryParseSafeDate(item['created_at']);
+    final createdAt = createdAtDate != null
+        ? DateFormat('dd MMM yyyy').format(createdAtDate)
         : '-';
 
     return InkWell(
@@ -492,13 +576,15 @@ class _HutangListPageState extends State<HutangListPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isPiutang ? const Color(0xFFE6F0FF) : const Color(0xFFE6FFE7),
+                color: isPiutang
+                    ? const Color(0xFFE6F0FF)
+                    : const Color(0xFFE6FFE7),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                isPiutang ? Icons.arrow_downward_rounded : Icons.receipt_long, 
-                color: isPiutang ? Colors.blue : AppTheme.primary, 
-                size: 20
+                isPiutang ? Icons.arrow_downward_rounded : Icons.receipt_long,
+                color: isPiutang ? Colors.blue : AppTheme.primary,
+                size: 20,
               ),
             ),
             const SizedBox(width: 12),
@@ -509,8 +595,10 @@ class _HutangListPageState extends State<HutangListPage> {
                   Text(
                     createdAt,
                     style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins', color: Color(0xFF374151),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                      color: Color(0xFF374151),
                     ),
                   ),
                   if (catatan.isNotEmpty) ...[
@@ -520,10 +608,12 @@ class _HutangListPageState extends State<HutangListPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF6B7280), fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                        fontFamily: 'Poppins',
                       ),
                     ),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -534,17 +624,23 @@ class _HutangListPageState extends State<HutangListPage> {
                   Text(
                     formatter.format(total),
                     style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins', color: Color(0xFF374151),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                      color: Color(0xFF374151),
                     ),
                   ),
                   Text(
-                    isLunas ? (isPiutang ? 'PIUTANG LUNAS' : 'HUTANG LUNAS') : 'Sisa: ${formatter.format(sisa)}',
+                    isLunas
+                        ? (isPiutang ? 'PIUTANG LUNAS' : 'HUTANG LUNAS')
+                        : 'Sisa: ${formatter.format(sisa)}',
                     style: TextStyle(
                       fontSize: 10,
                       fontFamily: 'Poppins',
                       fontWeight: isLunas ? FontWeight.bold : FontWeight.normal,
-                      color: isLunas ? AppTheme.primary : (sisa > 0 ? AppTheme.error : AppTheme.primary),
+                      color: isLunas
+                          ? AppTheme.primary
+                          : (sisa > 0 ? AppTheme.error : AppTheme.primary),
                     ),
                   ),
                 ],
@@ -557,7 +653,6 @@ class _HutangListPageState extends State<HutangListPage> {
       ),
     );
   }
-
 
   Widget _buildAmountRow(String label, String amount, Color amountColor) {
     return Row(

@@ -3,6 +3,9 @@ import 'package:catatcuan_mobile/features/onboarding/presentation/pages/onboardi
 import 'package:catatcuan_mobile/features/produk/insert_product.dart';
 import 'package:catatcuan_mobile/features/produk/product_list.dart';
 import 'package:catatcuan_mobile/features/produk/detail_product.dart';
+import 'package:catatcuan_mobile/features/pengeluaran/pengeluaran_list.dart';
+import 'package:catatcuan_mobile/features/pengeluaran/insert_pengeluaran.dart';
+import 'package:catatcuan_mobile/features/pengeluaran/detail_pengeluaran.dart';
 import 'package:catatcuan_mobile/features/settings/settings_page.dart';
 import 'package:catatcuan_mobile/features/pelanggan/customer_list.dart';
 import 'package:catatcuan_mobile/features/pelanggan/add_customer.dart';
@@ -70,7 +73,20 @@ class AppRouter {
       ),
       GoRoute(
         path: '/pengeluaran',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Halaman Pengeluaran'))),
+        builder: (context, state) => const PengeluaranListPage(),
+        routes: [
+          GoRoute(
+            path: 'add',
+            builder: (context, state) => const InsertPengeluaranPage(),
+          ),
+          GoRoute(
+            path: 'detail',
+            builder: (context, state) {
+              final expense = state.extra as Map<String, dynamic>;
+              return DetailPengeluaranPage(expense: expense);
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/buku-kas',
@@ -140,3 +156,4 @@ class AppRouter {
     ],
   );
 }
+
