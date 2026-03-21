@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/hutang_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
+import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -25,6 +26,15 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
   final _nilaiController = TextEditingController();
   
   bool _isLoading = false;
+
+  void _closePage() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Future<void>.delayed(Duration.zero, () {
+      if (mounted && Navigator.of(context).canPop()) {
+        context.pop();
+      }
+    });
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -358,7 +368,7 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
             ),
           ),
           GestureDetector(
-            onTap: () => context.pop(),
+            onTap: _closePage,
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: const BoxDecoration(
@@ -623,6 +633,7 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: isAmount ? [CurrencyInputFormatter()] : null,
       style: TextStyle(
         fontSize: isAmount ? 20 : 16,
         fontWeight: isAmount ? FontWeight.bold : FontWeight.w500,

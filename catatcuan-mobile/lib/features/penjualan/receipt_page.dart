@@ -8,7 +8,6 @@ import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class ReceiptPage extends StatelessWidget {
   const ReceiptPage({super.key, required this.transactionData});
-
   final Map<String, dynamic> transactionData;
 
   @override
@@ -17,33 +16,28 @@ class ReceiptPage extends StatelessWidget {
     final namaWarung = cache.warungName ?? 'NAMA WARUNG';
     const alamatWarung = ''; // Not cached yet in DataCacheService
 
-    final num diskon = num.tryParse(transactionData['diskon']?.toString() ?? '0') ?? 0;
-    final num netTotal = num.tryParse(transactionData['net_total']?.toString() ?? '0') ?? 0;
-    final String paymentMethod =
-        transactionData['payment_method']?.toString() ?? 'TUNAI';
-    final String? customerName = transactionData['customer_name']?.toString();
-    
+    final num diskon = transactionData['diskon'] ?? 0;
+    final num netTotal = transactionData['net_total'] ?? 0;
+    final String paymentMethod = transactionData['payment_method'] ?? 'TUNAI';
+    final String? customerName = transactionData['customer_name'] as String?;
+
     // Penjualan Master Data
     final penjualan =
         transactionData['penjualan'] as Map<String, dynamic>? ?? {};
-    final invoiceNo = penjualan['invoice_no']?.toString() ?? 'INV-XXXX';
-    final totalAmount = num.tryParse(penjualan['total_amount']?.toString() ?? '0') ?? 0;
-    final amountPaid = num.tryParse(penjualan['amount_paid']?.toString() ?? '0') ?? 0;
-    final amountChange = num.tryParse(penjualan['amount_change']?.toString() ?? '0') ?? 0;
-    
+    final invoiceNo = penjualan['invoice_no'] as String? ?? 'INV-XXXX';
+    final totalAmount = penjualan['total_amount'] as num? ?? 0;
+    final amountPaid = penjualan['amount_paid'] as num? ?? 0;
+    final amountChange = penjualan['amount_change'] as num? ?? 0;
+
     // Parse date safely
     DateTime? tanggalTx;
     if (penjualan['tanggal'] != null) {
       tanggalTx = DateTime.tryParse(penjualan['tanggal'].toString());
-    } else if (penjualan['created_at'] != null) {
-      tanggalTx = DateTime.tryParse(penjualan['created_at'].toString());
     }
     tanggalTx ??= DateTime.now();
     final tanggalStr = DateFormat('dd MMM yyyy HH:mm').format(tanggalTx);
 
-    final items = List<Map<String, dynamic>>.from(
-      transactionData['items'] as List? ?? const <Map<String, dynamic>>[],
-    );
+    final items = transactionData['items'] as List<dynamic>? ?? [];
 
     final currencyCcy = NumberFormat.currency(
       locale: 'id_ID',
@@ -103,7 +97,7 @@ class ReceiptPage extends StatelessWidget {
               ],
             ),
           ),
-          
+
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -129,14 +123,22 @@ class ReceiptPage extends StatelessWidget {
                         children: [
                           Text(
                             namaWarung.toUpperCase(),
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Courier'),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Courier',
+                            ),
                             textAlign: TextAlign.center,
                           ),
                           if (alamatWarung.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             const Text(
                               alamatWarung,
-                              style: TextStyle(fontSize: 12, fontFamily: 'Courier', color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'Courier',
+                                color: Colors.grey,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -146,14 +148,26 @@ class ReceiptPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Tx Metadata
-                    Text('No: $invoiceNo', style: const TextStyle(fontSize: 12, fontFamily: 'Courier')),
-                    Text('Tgl: $tanggalStr', style: const TextStyle(fontSize: 12, fontFamily: 'Courier')),
+                    Text(
+                      'No: $invoiceNo',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'Courier',
+                      ),
+                    ),
+                    Text(
+                      'Tgl: $tanggalStr',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'Courier',
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     const Divider(color: Colors.black54),
                     const SizedBox(height: 12),
-                    
+
                     // Items List
                     ...items.map((item) {
                       final name = item['nama_produk'] as String? ?? '';
@@ -168,14 +182,20 @@ class ReceiptPage extends StatelessWidget {
                               flex: 2,
                               child: Text(
                                 '$name (x$qty)',
-                                style: const TextStyle(fontSize: 12, fontFamily: 'Courier'),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontFamily: 'Courier',
+                                ),
                               ),
                             ),
                             Expanded(
                               flex: 1,
                               child: Text(
                                 currencyCcy.format(sub),
-                                style: const TextStyle(fontSize: 12, fontFamily: 'Courier'),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontFamily: 'Courier',
+                                ),
                                 textAlign: TextAlign.right,
                               ),
                             ),
@@ -183,38 +203,64 @@ class ReceiptPage extends StatelessWidget {
                         ),
                       );
                     }),
-                    
+
                     const SizedBox(height: 4),
                     const Divider(color: Colors.black54),
                     const SizedBox(height: 4),
-                    
+
                     // Subtotal / Discount / Total
-                    _buildReceiptRow('Subtotal:', currencyCcy.format(totalAmount)),
+                    _buildReceiptRow(
+                      'Subtotal:',
+                      currencyCcy.format(totalAmount),
+                    ),
                     if (diskon > 0)
-                      _buildReceiptRow('Diskon:', '-${currencyCcy.format(diskon)}'),
-                    _buildReceiptRow('Total:', currencyCcy.format(netTotal), isBold: true),
-                    
+                      _buildReceiptRow(
+                        'Diskon:',
+                        '-${currencyCcy.format(diskon)}',
+                      ),
+                    _buildReceiptRow(
+                      'Total:',
+                      currencyCcy.format(netTotal),
+                      isBold: true,
+                    ),
+
                     const SizedBox(height: 12),
                     const Divider(color: Colors.black54),
                     const SizedBox(height: 12),
-                    
+
                     // Payment conditional view
                     if (paymentMethod.toUpperCase() == 'TUNAI') ...[
-                      _buildReceiptRow('Tunai:', currencyCcy.format(amountPaid)),
-                      _buildReceiptRow('Kembalian:', currencyCcy.format(amountChange)),
+                      _buildReceiptRow(
+                        'Tunai:',
+                        currencyCcy.format(amountPaid),
+                      ),
+                      _buildReceiptRow(
+                        'Kembalian:',
+                        currencyCcy.format(amountChange),
+                      ),
                     ] else ...[
                       _buildReceiptRow('Pelanggan:', customerName ?? '-'),
-                      _buildReceiptRow('DP / Uang Muka:', currencyCcy.format(amountPaid)),
-                      _buildReceiptRow('Sisa Hutang:', currencyCcy.format(netTotal - amountPaid)),
+                      _buildReceiptRow(
+                        'DP / Uang Muka:',
+                        currencyCcy.format(amountPaid),
+                      ),
+                      _buildReceiptRow(
+                        'Sisa Hutang:',
+                        currencyCcy.format(netTotal - amountPaid),
+                      ),
                     ],
-                    
+
                     const SizedBox(height: 24),
                     const Divider(color: Colors.black54),
                     const SizedBox(height: 12),
                     const Center(
                       child: Text(
                         'Terima Kasih!',
-                        style: TextStyle(fontSize: 14, fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Courier',
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -247,12 +293,21 @@ class ReceiptPage extends StatelessWidget {
                   icon: const Icon(Icons.print, color: Color(0xFFF8BD00)),
                   label: const Text(
                     'CETAK STRUK',
-                    style: TextStyle(color: Color(0xFFF8BD00), fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+                    style: TextStyle(
+                      color: Color(0xFFF8BD00),
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Color(0xFFF8BD00), width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(
+                      color: Color(0xFFF8BD00),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -265,12 +320,19 @@ class ReceiptPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                   child: const Text(
                     'SELESAI',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Poppins'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                 ),
               ),
@@ -289,11 +351,19 @@ class ReceiptPage extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 12, fontFamily: 'Courier', fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: 'Courier',
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
           Text(
             value,
-            style: TextStyle(fontSize: 12, fontFamily: 'Courier', fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: 'Courier',
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ],
       ),

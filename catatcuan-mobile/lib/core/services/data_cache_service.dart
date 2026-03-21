@@ -269,7 +269,13 @@ class DataCacheService {
           .from('WARUNG')
           .select('id, nama_warung, nama_pemilik, saldo_awal, uang_kas, uang_kas_operasional')
           .eq('user_id', userId)
-          .single();
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (warungData == null) {
+        throw Exception('Data warung tidak ditemukan untuk user ini');
+      }
 
       warungId = warungData['id'] as String;
       userName = (warungData['nama_pemilik'] as String?) ?? 'User';

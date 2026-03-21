@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Ruler, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logAdminActivity } from '@/lib/admin-activity';
 
 interface Satuan {
   id: string;
@@ -104,6 +105,10 @@ export default function MasterSatuanPage() {
         toast.error('Gagal update: ' + error.message);
         return;
       }
+      await logAdminActivity(supabase, 'Memperbarui master satuan', {
+        satuan_id: editingSatuan.id,
+        nama_satuan: formData.nama_satuan.trim().toUpperCase(),
+      });
       toast.success('Satuan berhasil diupdate');
     } else {
       const { error } = await supabase.from('MASTER_SATUAN').insert({
@@ -115,6 +120,9 @@ export default function MasterSatuanPage() {
         toast.error('Gagal menambah: ' + error.message);
         return;
       }
+      await logAdminActivity(supabase, 'Menambahkan master satuan', {
+        nama_satuan: formData.nama_satuan.trim().toUpperCase(),
+      });
       toast.success('Satuan berhasil ditambahkan');
     }
 
@@ -134,6 +142,9 @@ export default function MasterSatuanPage() {
       toast.error('Gagal menonaktifkan: ' + error.message);
       return;
     }
+    await logAdminActivity(supabase, 'Menonaktifkan master satuan', {
+      satuan_id: id,
+    });
     toast.success('Satuan berhasil dinonaktifkan');
     fetchSatuans();
   }
@@ -148,6 +159,11 @@ export default function MasterSatuanPage() {
       toast.error('Gagal update status: ' + error.message);
       return;
     }
+    await logAdminActivity(supabase, 'Mengubah status master satuan', {
+      satuan_id: satuan.id,
+      nama_satuan: satuan.nama_satuan,
+      is_active: !satuan.is_active,
+    });
     fetchSatuans();
   }
 

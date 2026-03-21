@@ -1,5 +1,6 @@
 import 'package:catatcuan_mobile/core/services/hutang_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
+import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -38,6 +39,15 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
         .trim();
 
     return DateTime.tryParse(sanitized)?.toLocal() ?? DateTime.now();
+  }
+
+  void _closePage() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Future<void>.delayed(Duration.zero, () {
+      if (mounted && Navigator.of(context).canPop()) {
+        context.pop();
+      }
+    });
   }
 
   @override
@@ -153,6 +163,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                   TextField(
                     controller: controller,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [CurrencyInputFormatter()],
                     autofocus: true,
                     style: const TextStyle(
                       fontSize: 20,
@@ -333,7 +344,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
       text: _data['catatan'] as String? ?? '',
     );
     final amountCtrl = TextEditingController(
-      text: (_data['amount_awal'] as num).toInt().toString(),
+      text: formatIdrNumber((_data['amount_awal'] as num).toInt()),
     );
 
     bool isSaving = false;
@@ -486,6 +497,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                   TextField(
                     controller: amountCtrl,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [CurrencyInputFormatter()],
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -1008,7 +1020,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
               ),
               const SizedBox(width: 8),
               GestureDetector(
-                onTap: () => context.pop(),
+                onTap: _closePage,
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: const BoxDecoration(

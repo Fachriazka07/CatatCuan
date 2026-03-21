@@ -62,6 +62,18 @@ const menuItems = [
 export function AppSidebar() {
   const pathname = usePathname();
 
+  function isMenuActive(url: string) {
+    if (url === '/dashboard/users') {
+      return (
+        pathname === url ||
+        pathname.startsWith('/dashboard/users/') ||
+        pathname.startsWith('/dashboard/warungs/')
+      );
+    }
+
+    return pathname === url;
+  }
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border p-4">
@@ -82,7 +94,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={isMenuActive(item.url)}>
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>

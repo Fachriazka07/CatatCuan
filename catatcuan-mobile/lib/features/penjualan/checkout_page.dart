@@ -7,11 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({
-    super.key,
-    required this.initialCart,
-  });
-
+  const CheckoutPage({super.key, required this.initialCart});
   final Map<String, int> initialCart;
 
   @override
@@ -21,7 +17,11 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   final _cache = DataCacheService.instance;
   final _supabase = Supabase.instance.client;
-  final _formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final _formatter = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
 
   late Map<String, int> _cart;
   List<Map<String, dynamic>> _cartProducts = [];
@@ -35,7 +35,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _paymentMethod = 'TUNAI'; // 'TUNAI' | 'HUTANG'
   num _totalPrice = 0;
   num _discount = 0;
-  
+
   // Hutang Data
   List<Map<String, dynamic>> _customers = [];
   String? _selectedCustomerId;
@@ -49,10 +49,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _cart = Map<String, int>.from(widget.initialCart);
     _loadCartProducts();
     _fetchCustomers();
-    
+
     _discountController.addListener(_calculateTotal);
-    _uangDiterimaController.addListener(() => setState(() {})); // To reactive kembalian updates
-    _uangMukaController.addListener(() => setState(() {})); // To reactive sisa hutang updates
+    _uangDiterimaController.addListener(
+      () => setState(() {}),
+    ); // To reactive kembalian updates
+    _uangMukaController.addListener(
+      () => setState(() {}),
+    ); // To reactive sisa hutang updates
   }
 
   @override
@@ -74,7 +78,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _fetchCustomers() async {
     try {
       if (_cache.warungId == null) return;
-      
+
       final response = await _supabase
           .from('PELANGGAN')
           .select('id, nama, phone')
@@ -99,9 +103,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final qty = _cart[pid] ?? 0;
       subtotal += (price * qty);
     }
-    
+
     // Parse discount safely
-    final discountStr = _discountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final discountStr = _discountController.text.replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
     _discount = int.tryParse(discountStr) ?? 0;
 
     setState(() {
@@ -114,7 +121,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void _updateQty(String pid, int delta) {
     final currentQty = _cart[pid] ?? 0;
     final newQty = currentQty + delta;
-    
+
     // Validations
     if (newQty < 0) return;
 
@@ -124,7 +131,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // Assuming no stock check needed here, but you could add the same check as pos_cashier
       _cart[pid] = newQty;
     }
-    
+
     setState(() {
       _loadCartProducts();
     });
@@ -132,15 +139,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   String _resolveIconPath(String? iconName) {
     final validIcons = [
-      'Bahan_Bangunan.png', 'Bahan_Kue.png', 'Buku_ATK.png', 'Bumbu_Dapur.png',
-      'Buah.png', 'Cepat_Saji.png', 'Daging.png', 'Dessert.png',
-      'Elektronik.png', 'Fashion.png', 'Frozen_Food.png', 'Gadget.png',
-      'Gas.png', 'Kecantikan.png', 'Kesehatan.png', 'Lainya.png',
-      'Layanan.png', 'Mainan.png', 'Makanan_Hewan.png', 'Pakaian_Anak.png',
-      'Peralatan_Mancing.png', 'Peralatan_Olahraga.png', 'Perawatan_Kendaraan.png',
-      'Sayuran.png', 'Sembako.png', 'Snack.png', 'Minuman.png', 'Aksesoris.png'
+      'Bahan_Bangunan.png',
+      'Bahan_Kue.png',
+      'Buku_ATK.png',
+      'Bumbu_Dapur.png',
+      'Buah.png',
+      'Cepat_Saji.png',
+      'Daging.png',
+      'Dessert.png',
+      'Elektronik.png',
+      'Fashion.png',
+      'Frozen_Food.png',
+      'Gadget.png',
+      'Gas.png',
+      'Kecantikan.png',
+      'Kesehatan.png',
+      'Lainya.png',
+      'Layanan.png',
+      'Mainan.png',
+      'Makanan_Hewan.png',
+      'Pakaian_Anak.png',
+      'Peralatan_Mancing.png',
+      'Peralatan_Olahraga.png',
+      'Perawatan_Kendaraan.png',
+      'Sayuran.png',
+      'Sembako.png',
+      'Snack.png',
+      'Minuman.png',
+      'Aksesoris.png',
     ];
-    if (iconName == null || iconName.isEmpty || !validIcons.contains(iconName)) {
+    if (iconName == null ||
+        iconName.isEmpty ||
+        !validIcons.contains(iconName)) {
       return 'assets/icon/produk-icon/Lainya.png';
     }
     return 'assets/icon/produk-icon/$iconName';
@@ -154,7 +184,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (_paymentMethod == 'HUTANG') {
       if (_selectedCustomerId == null) {
-        AppToast.showWarning(context, 'Pilih pelanggan untuk pembayaran hutang!');
+        AppToast.showWarning(
+          context,
+          'Pilih pelanggan untuk pembayaran hutang!',
+        );
         return;
       }
       if (_jatuhTempo == null) {
@@ -162,25 +195,35 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
     } else if (_paymentMethod == 'TUNAI') {
-      final uangStr = _uangDiterimaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final uangStr = _uangDiterimaController.text.replaceAll(
+        RegExp(r'[^0-9]'),
+        '',
+      );
       final uang = num.tryParse(uangStr) ?? 0;
-      
+
       if (uang < _netTotal) {
-        AppToast.showWarning(context, 'Uang yang diterima kurang dari total tagihan!');
+        AppToast.showWarning(
+          context,
+          'Uang yang diterima kurang dari total tagihan!',
+        );
         return;
       }
     }
 
     setState(() => _isLoading = true);
-    
+
     try {
       final warungId = _cache.warungId;
       if (warungId == null) throw Exception('Warung ID tidak ditemukan');
-      
+
       final timestamp = DateTime.now();
-      final String invoiceNo = 'INV-${timestamp.year}${timestamp.month.toString().padLeft(2, '0')}${timestamp.day.toString().padLeft(2, '0')}-${timestamp.millisecondsSinceEpoch.toString().substring(7)}';
-      
-      final uangStr = _uangDiterimaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final String invoiceNo =
+          'INV-${timestamp.year}${timestamp.month.toString().padLeft(2, '0')}${timestamp.day.toString().padLeft(2, '0')}-${timestamp.millisecondsSinceEpoch.toString().substring(7)}';
+
+      final uangStr = _uangDiterimaController.text.replaceAll(
+        RegExp(r'[^0-9]'),
+        '',
+      );
       final uangDiterima = num.tryParse(uangStr) ?? 0;
 
       final dpStr = _uangMukaController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -193,54 +236,55 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'invoice_no': invoiceNo,
         'total_amount': _totalPrice,
         'amount_paid': _paymentMethod == 'TUNAI' ? uangDiterima : dp,
-        'amount_change': _paymentMethod == 'TUNAI' ? (uangDiterima - _netTotal).clamp(0, double.infinity) : 0,
+        'amount_change': _paymentMethod == 'TUNAI'
+            ? (uangDiterima - _netTotal).clamp(0, double.infinity)
+            : 0,
         'payment_method': _paymentMethod.toLowerCase(), // 'tunai' or 'hutang'
         'status': 'completed',
         'notes': _discount > 0 ? 'Diskon: $_discount' : null,
       };
 
-      final insertedPenjualan =
-          await _supabase.from('PENJUALAN').insert(penjualanData).select().single();
-      final String penjualanId = insertedPenjualan['id'].toString();
+      final insertedPenjualan = await _supabase
+          .from('PENJUALAN')
+          .insert(penjualanData)
+          .select()
+          .single();
+      final penjualanId = insertedPenjualan['id'];
 
-      // 2. Insert PENJUALAN_ITEM
+      // 2. Insert PENJUALAN_ITEM (with harga_modal for profit tracking)
       final List<Map<String, dynamic>> itemsToInsert = [];
-      num totalProfit = 0;
+      double totalProfit = 0;
       for (var p in _cartProducts) {
         final pid = p['id'] as String;
         final qty = _cart[pid] ?? 0;
         final price = num.parse((p['harga_jual'] ?? 0).toString());
-        final modal = num.parse((p['harga_modal'] ?? 0).toString());
+        final hargaModal = num.parse((p['harga_modal'] ?? 0).toString());
+        final itemProfit = (price - hargaModal) * qty;
+        totalProfit += itemProfit;
 
-        totalProfit += (price - modal) * qty;
         itemsToInsert.add({
           'penjualan_id': penjualanId,
           'produk_id': pid,
           'nama_produk': p['nama_produk'],
           'quantity': qty,
           'harga_satuan': price,
-          'harga_modal': modal,
+          'harga_modal': hargaModal,
           'subtotal': price * qty,
         });
       }
 
-      totalProfit -= _discount;
       await _supabase.from('PENJUALAN_ITEM').insert(itemsToInsert);
 
-      try {
-        await _supabase.from('PENJUALAN').update({
-          'profit': totalProfit,
-        }).eq('id', penjualanId);
-      } catch (e) {
-        debugPrint('Profit column not updated: $e');
-      }
-
-      insertedPenjualan['profit'] = totalProfit;
+      // Update PENJUALAN with profit
+      await _supabase
+          .from('PENJUALAN')
+          .update({'profit': totalProfit})
+          .eq('id', penjualanId);
 
       // 3. Insert HUTANG if necessary
       if (_paymentMethod == 'HUTANG') {
         final sisaHutang = _netTotal - dp;
-        
+
         final hutangData = {
           'warung_id': warungId,
           'pelanggan_id': _selectedCustomerId,
@@ -250,21 +294,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'amount_sisa': sisaHutang,
           'tanggal_jatuh_tempo': _jatuhTempo?.toIso8601String().split('T')[0],
           'status': sisaHutang <= 0 ? 'lunas' : 'belum_lunas',
+          'jenis': 'PIUTANG',
         };
-        
+
         await _supabase.from('HUTANG').insert(hutangData);
 
         // Update PELANGGAN total_hutang
-        await _supabase.rpc<dynamic>('increment_field', params: {
-          'table_name': 'PELANGGAN',
-          'row_id': _selectedCustomerId,
-          'field_name': 'total_hutang',
-          'increment_value': sisaHutang,
-        }).onError((error, stackTrace) {
-          // Fallback: manual update if RPC not available
-          debugPrint('RPC not available, skipping PELANGGAN update: $error');
-          return null;
-        });
+        await _supabase
+            .rpc(
+              'increment_field',
+              params: {
+                'table_name': 'PELANGGAN',
+                'row_id': _selectedCustomerId,
+                'field_name': 'total_hutang',
+                'increment_value': sisaHutang,
+              },
+            )
+            .onError((error, stackTrace) {
+              // Fallback: manual update if RPC not available
+              debugPrint(
+                'RPC not available, skipping PELANGGAN update: $error',
+              );
+              return null;
+            });
       }
 
       // 4. Decrement stock for each product
@@ -272,12 +324,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
         final pid = p['id'] as String;
         final qty = _cart[pid] ?? 0;
         final currentStock = num.parse((p['stok_saat_ini'] ?? 0).toString());
-        final newStock = (currentStock - qty).clamp(0, double.infinity).toInt();
-        
-        await _supabase.from('PRODUK').update({
-          'stok_saat_ini': newStock,
-          'updated_at': DateTime.now().toIso8601String(),
-        }).eq('id', pid);
+        final newStock = (currentStock - qty).clamp(0, double.infinity);
+
+        await _supabase
+            .from('PRODUK')
+            .update({
+              'stok_saat_ini': newStock,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', pid);
       }
 
       // 5. Insert BUKU_KAS entry (cash in)
@@ -295,14 +350,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
       await _cache.refreshProducts();
 
       // 6. Persist updated uang_kas to WARUNG table
-      await _supabase.from('WARUNG').update({
-        'uang_kas': _cache.uangKas,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', warungId);
-      
+      await _supabase
+          .from('WARUNG')
+          .update({
+            'uang_kas': _cache.uangKas,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', warungId);
+
       if (mounted) {
         AppToast.showSuccess(context, 'Transaksi Berhasil!');
-        
+
         // Prepare data for Receipt Page
         final receiptData = {
           'penjualan': insertedPenjualan,
@@ -310,8 +368,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'payment_method': _paymentMethod,
           'diskon': _discount,
           'net_total': _netTotal,
-          'customer_name': _selectedCustomerId != null 
-              ? _customers.firstWhere((c) => c['id'] == _selectedCustomerId, orElse: () => {'nama': '-'})['nama'] 
+          'customer_name': _selectedCustomerId != null
+              ? _customers.firstWhere(
+                  (c) => c['id'] == _selectedCustomerId,
+                  orElse: () => {'nama': '-'},
+                )['nama']
               : null,
         };
 
@@ -363,29 +424,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
             _buildHeader(),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
                 children: [
                   _buildSectionTitle('Keranjang Belanja'),
                   const SizedBox(height: 12),
                   _buildCartList(),
                   const SizedBox(height: 24),
-                  
+
                   _buildSectionTitle('Ringkasan Biaya'),
                   const SizedBox(height: 12),
                   _buildSummary(),
                   const SizedBox(height: 24),
-                  
+
                   _buildSectionTitle('Tipe Pembayaran'),
                   const SizedBox(height: 12),
                   _buildPaymentSelection(),
                   const SizedBox(height: 16),
-                  
+
                   // Dynamic Payment Form
-                  if (_paymentMethod == 'TUNAI') 
+                  if (_paymentMethod == 'TUNAI')
                     _buildTunaiForm()
-                  else 
+                  else
                     _buildHutangForm(),
-                    
+
                   const SizedBox(height: 100), // Spacing for bottom bar
                 ],
               ),
@@ -421,7 +485,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     context.go('/transaksi/pos');
                   }
                 },
-                child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.arrow_back_ios,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 8),
               const Text(
@@ -492,10 +560,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
             final pid = product['id'] as String;
             final qty = _cart[pid] ?? 0;
             final price = num.parse((product['harga_jual'] ?? 0).toString());
-            
+
             String iconName = 'Lainya.png';
             if (product['KATEGORI_PRODUK'] != null) {
-              iconName = (product['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['icon'] as String? ?? 'Lainya.png';
+              iconName =
+                  (product['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['icon']
+                      as String? ??
+                  'Lainya.png';
             }
 
             return Column(
@@ -569,11 +640,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         color: Colors.grey[200],
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(Icons.remove, size: 20, color: Colors.black54),
+                                      child: const Icon(
+                                        Icons.remove,
+                                        size: 20,
+                                        color: Colors.black54,
+                                      ),
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
                                     child: Text(
                                       '$qty',
                                       style: const TextStyle(
@@ -591,13 +668,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         color: AppTheme.primary,
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(Icons.add, size: 20, color: Colors.white),
+                                      child: const Icon(
+                                        Icons.add,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],
-                              )
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -636,7 +717,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -711,18 +792,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Poppins',
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 0,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFD1EDD8),
+                        width: 1.5,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFD1EDD8),
+                        width: 1.5,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -769,10 +862,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: _paymentMethod == 'TUNAI' ? AppTheme.primary : Colors.white,
+                color: _paymentMethod == 'TUNAI'
+                    ? AppTheme.primary
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _paymentMethod == 'TUNAI' ? AppTheme.primary : const Color(0xFFD1EDD8),
+                  color: _paymentMethod == 'TUNAI'
+                      ? AppTheme.primary
+                      : const Color(0xFFD1EDD8),
                   width: 1.5,
                 ),
               ),
@@ -780,7 +877,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Text(
                   'TUNAI',
                   style: TextStyle(
-                    color: _paymentMethod == 'TUNAI' ? Colors.white : Colors.black87,
+                    color: _paymentMethod == 'TUNAI'
+                        ? Colors.white
+                        : Colors.black87,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                     fontFamily: 'Poppins',
@@ -797,10 +896,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: _paymentMethod == 'HUTANG' ? const Color(0xFFF8BD00) : Colors.white,
+                color: _paymentMethod == 'HUTANG'
+                    ? const Color(0xFFF8BD00)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _paymentMethod == 'HUTANG' ? const Color(0xFFF8BD00) : const Color(0xFFD1EDD8),
+                  color: _paymentMethod == 'HUTANG'
+                      ? const Color(0xFFF8BD00)
+                      : const Color(0xFFD1EDD8),
                   width: 1.5,
                 ),
               ),
@@ -808,7 +911,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Text(
                   'KASBON (Hutang)',
                   style: TextStyle(
-                    color: _paymentMethod == 'HUTANG' ? Colors.white : Colors.black87,
+                    color: _paymentMethod == 'HUTANG'
+                        ? Colors.white
+                        : Colors.black87,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                     fontFamily: 'Poppins',
@@ -823,9 +928,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildTunaiForm() {
-    final uangStr = _uangDiterimaController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final uangStr = _uangDiterimaController.text.replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
     final uang = num.tryParse(uangStr) ?? 0;
-    
+
     final sisa = _netTotal - uang;
     final isKurang = sisa > 0;
 
@@ -873,18 +981,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 fontFamily: 'Poppins',
               ),
               hintText: '0',
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFD1EDD8),
+                  width: 1.5,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFD1EDD8),
+                  width: 1.5,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppTheme.primary,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -929,10 +1049,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
         String searchQuery = '';
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            final filteredCustomers = _customers.where((c) {
-              final name = (c['nama'] as String).toLowerCase();
-              return name.contains(searchQuery.toLowerCase());
-            }).take(5).toList();
+            final filteredCustomers = _customers
+                .where((c) {
+                  final name = (c['nama'] as String).toLowerCase();
+                  return name.contains(searchQuery.toLowerCase());
+                })
+                .take(5)
+                .toList();
 
             return DraggableScrollableSheet(
               initialChildSize: 0.6,
@@ -957,9 +1080,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       const Text(
                         'Pilih Pelanggan',
                         style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Poppins'),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
@@ -970,20 +1094,35 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         },
                         decoration: InputDecoration(
                           hintText: 'Cari pelanggan...',
-                          hintStyle: const TextStyle(fontFamily: 'Poppins', color: Colors.grey),
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          hintStyle: const TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Colors.grey,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD1EDD8)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFD1EDD8),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFD1EDD8)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFD1EDD8),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppTheme.primary),
+                            borderSide: const BorderSide(
+                              color: AppTheme.primary,
+                            ),
                           ),
                         ),
                       ),
@@ -991,8 +1130,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       Expanded(
                         child: filteredCustomers.isEmpty
                             ? const Center(
-                                child: Text('Pelanggan tidak ditemukan.',
-                                    style: TextStyle(fontFamily: 'Poppins', color: Colors.grey)),
+                                child: Text(
+                                  'Pelanggan tidak ditemukan.',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               )
                             : ListView.builder(
                                 controller: scrollController,
@@ -1004,25 +1148,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     children: [
                                       ListTile(
                                         leading: CircleAvatar(
-                                          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                                          backgroundColor: AppTheme.primary
+                                              .withValues(alpha: 0.1),
                                           child: Text(
-                                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                            style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                                            name.isNotEmpty
+                                                ? name[0].toUpperCase()
+                                                : '?',
+                                            style: const TextStyle(
+                                              color: AppTheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                        title: Text(name, style: const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
-                                        trailing: _selectedCustomerId == customer['id']
-                                            ? const Icon(Icons.check_circle, color: AppTheme.primary)
+                                        title: Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontFamily: 'Poppins',
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        trailing:
+                                            _selectedCustomerId ==
+                                                customer['id']
+                                            ? const Icon(
+                                                Icons.check_circle,
+                                                color: AppTheme.primary,
+                                              )
                                             : null,
                                         onTap: () {
                                           setState(() {
-                                            _selectedCustomerId = customer['id'] as String;
+                                            _selectedCustomerId =
+                                                customer['id'] as String;
                                           });
                                           Navigator.pop(ctx);
                                         },
                                       ),
                                       if (index < filteredCustomers.length - 1)
-                                        const Divider(height: 1, color: Color(0xFFE5E7EB)),
+                                        const Divider(
+                                          height: 1,
+                                          color: Color(0xFFE5E7EB),
+                                        ),
                                     ],
                                   );
                                 },
@@ -1037,13 +1202,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             color: AppTheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.add, color: AppTheme.primary, size: 20),
+                          child: const Icon(
+                            Icons.add,
+                            color: AppTheme.primary,
+                            size: 20,
+                          ),
                         ),
-                        title: const Text('Tambah Pelanggan Baru',
-                            style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.primary)),
+                        title: const Text(
+                          'Tambah Pelanggan Baru',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                          ),
+                        ),
                         onTap: () async {
                           Navigator.pop(ctx);
                           await context.push('/pelanggan/add');
@@ -1108,22 +1280,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      _selectedCustomerId != null 
+                      _selectedCustomerId != null
                           ? (_customers.firstWhere(
-                              (c) => c['id'] == _selectedCustomerId,
-                              orElse: () => {'nama': 'Pelanggan tidak ditemukan'})['nama'] as String)
+                                  (c) => c['id'] == _selectedCustomerId,
+                                  orElse: () => {
+                                    'nama': 'Pelanggan tidak ditemukan',
+                                  },
+                                )['nama']
+                                as String)
                           : 'Pilih nama pelanggan...',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 15,
-                        fontWeight: _selectedCustomerId != null ? FontWeight.w600 : FontWeight.normal,
-                        color: _selectedCustomerId != null ? Colors.black87 : const Color(0xFF9CA3AF),
+                        fontWeight: _selectedCustomerId != null
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                        color: _selectedCustomerId != null
+                            ? Colors.black87
+                            : const Color(0xFF9CA3AF),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9CA3AF)),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Color(0xFF9CA3AF),
+                  ),
                 ],
               ),
             ),
@@ -1158,18 +1341,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 fontFamily: 'Poppins',
               ),
               hintText: '0',
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFD1EDD8),
+                  width: 1.5,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFD1EDD8),
+                  width: 1.5,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFF8BD00), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF8BD00),
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -1225,8 +1420,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _jatuhTempo != null 
-                        ? DateFormat('dd MMM yyyy', 'id_ID').format(_jatuhTempo!)
+                    _jatuhTempo != null
+                        ? DateFormat(
+                            'dd MMM yyyy',
+                            'id_ID',
+                          ).format(_jatuhTempo!)
                         : 'Pilih tanggal...',
                     style: TextStyle(
                       fontFamily: 'Poppins',
@@ -1235,7 +1433,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       color: _jatuhTempo != null ? Colors.black87 : Colors.grey,
                     ),
                   ),
-                  const Icon(Icons.calendar_today, color: AppTheme.primary, size: 20),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: AppTheme.primary,
+                    size: 20,
+                  ),
                 ],
               ),
             ),
@@ -1257,7 +1459,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32), // High bottom padding for safe area
+      padding: const EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        32,
+      ), // High bottom padding for safe area
       child: Row(
         children: [
           Expanded(

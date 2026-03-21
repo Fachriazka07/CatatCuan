@@ -1,6 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+String formatIdrNumber(num value) {
+  final formatter = NumberFormat.decimalPattern('id_ID');
+  return formatter.format(value);
+}
+
 class CurrencyInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -19,8 +24,7 @@ class CurrencyInputFormatter extends TextInputFormatter {
     final double value = double.parse(cleanText);
     
     // Format as Indonesian currency (using . as thousand separator)
-    final formatter = NumberFormat.decimalPattern('id_ID');
-    final String newText = formatter.format(value);
+    final String newText = formatIdrNumber(value);
 
     return newValue.copyWith(
       text: newText,

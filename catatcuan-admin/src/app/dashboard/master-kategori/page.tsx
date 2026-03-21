@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { FolderTree, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logAdminActivity } from '@/lib/admin-activity';
 
 interface Kategori {
   id: string;
@@ -108,6 +109,11 @@ export default function MasterKategoriPage() {
         toast.error('Gagal update: ' + error.message);
         return;
       }
+      await logAdminActivity(supabase, 'Memperbarui master kategori produk', {
+        kategori_id: editingKategori.id,
+        nama_kategori: formData.nama_kategori.trim(),
+        icon: formData.icon.trim() || null,
+      });
       toast.success('Kategori berhasil diupdate');
     } else {
       const { error } = await supabase.from('MASTER_KATEGORI_PRODUK').insert({
@@ -120,6 +126,10 @@ export default function MasterKategoriPage() {
         toast.error('Gagal menambah: ' + error.message);
         return;
       }
+      await logAdminActivity(supabase, 'Menambahkan master kategori produk', {
+        nama_kategori: formData.nama_kategori.trim(),
+        icon: formData.icon.trim() || null,
+      });
       toast.success('Kategori berhasil ditambahkan');
     }
 
@@ -139,6 +149,9 @@ export default function MasterKategoriPage() {
       toast.error('Gagal menonaktifkan: ' + error.message);
       return;
     }
+    await logAdminActivity(supabase, 'Menonaktifkan master kategori produk', {
+      kategori_id: id,
+    });
     toast.success('Kategori berhasil dinonaktifkan');
     fetchKategoris();
   }
@@ -153,6 +166,11 @@ export default function MasterKategoriPage() {
       toast.error('Gagal update status: ' + error.message);
       return;
     }
+    await logAdminActivity(supabase, 'Mengubah status master kategori produk', {
+      kategori_id: kategori.id,
+      nama_kategori: kategori.nama_kategori,
+      is_active: !kategori.is_active,
+    });
     fetchKategoris();
   }
 

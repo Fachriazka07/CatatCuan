@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
+import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,13 +16,15 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final supabase = Supabase.instance.client;
   final _cache = DataCacheService.instance;
   static final RegExp _sourceTagPattern = RegExp(
     r'^\[Sumber:\s*[^\]]+\]\s*',
     caseSensitive: false,
   );
+  Timer? _statusCheckTimer;
+  bool _isRedirectingBlockedUser = false;
   bool isLoading = true;
   String? userName;
   String? warungName;
@@ -32,12 +37,84 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      _ensureActiveUserStatus(showMessage: false);
+    });
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _statusCheckTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _ensureActiveUserStatus();
+    }
+  }
+
+  Future<bool> _ensureActiveUserStatus({bool showMessage = true}) async {
+    if (_isRedirectingBlockedUser) {
+      return false;
+    }
+
+    final userId = await SessionService.getUserId();
+    if (userId == null) {
+      return false;
+    }
+
+    try {
+      final user = await supabase
+          .from('USERS')
+          .select('status')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final status = user?['status'] as String? ?? 'inactive';
+      if (status == 'active') {
+        return true;
+      }
+
+      _isRedirectingBlockedUser = true;
+      await SessionService.logout();
+
+      if (!mounted) {
+        return false;
+      }
+
+      if (showMessage) {
+        if (status == 'suspended') {
+          AppToast.showError(
+            context,
+            'Akun Anda diblokir. Silakan hubungi admin.',
+          );
+        } else {
+          AppToast.showInfo(
+            context,
+            'Akun Anda dinonaktifkan. Silakan login lagi setelah diaktifkan.',
+          );
+        }
+      }
+
+      context.go('/login');
+      return false;
+    } catch (e) {
+      debugPrint('Error checking user status: $e');
+      return true;
+    }
   }
 
   Future<void> _fetchData() async {
     setState(() => isLoading = true);
     try {
+      final isAllowed = await _ensureActiveUserStatus();
+      if (!isAllowed) return;
+
       final warungId = _cache.warungId;
       if (warungId == null) return;
 

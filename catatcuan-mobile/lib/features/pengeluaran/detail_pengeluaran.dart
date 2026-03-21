@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
+import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -22,7 +23,7 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
   late TextEditingController _amountController;
   late TextEditingController _keteranganController;
   late DateTime _selectedDate;
-  
+
   String? _selectedKategoriId;
   String _selectedKategoriName = 'Lainnya';
   String _selectedKategoriIcon = 'LainnyaPribadi.png';
@@ -45,19 +46,32 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
     caseSensitive: false,
   );
 
+  void _closePage() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Future<void>.delayed(Duration.zero, () {
+      if (mounted && Navigator.of(context).canPop()) {
+        context.pop();
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     final amount = (widget.expense['amount'] as num).toDouble();
-    _amountController = TextEditingController(text: amount.toInt().toString());
-    
+    _amountController = TextEditingController(
+      text: formatIdrNumber(amount.toInt()),
+    );
+
     final fullKeterangan = widget.expense['keterangan'] as String? ?? '';
-    _keteranganController = TextEditingController(text: _formatExpenseNote(fullKeterangan));
+    _keteranganController = TextEditingController(
+      text: _formatExpenseNote(fullKeterangan),
+    );
     _selectedSource = _extractExpenseSource(fullKeterangan);
 
     _selectedDate = DateTime.parse(widget.expense['tanggal'].toString());
     _selectedKategoriId = widget.expense['kategori_id'] as String?;
-    
+
     final cat = widget.expense['KATEGORI_PENGELUARAN'] as Map<String, dynamic>?;
     if (cat != null) {
       _selectedKategoriName = cat['nama_kategori'] as String? ?? 'Lainnya';
@@ -122,8 +136,14 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Pengeluaran', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
-        content: const Text('Apakah Anda yakin ingin menghapus pengeluaran ini? Saldo akan dikembalikan.', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+        title: const Text(
+          'Hapus Pengeluaran',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus pengeluaran ini? Saldo akan dikembalikan.',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 14),
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         actions: [
           TextButton(
@@ -134,9 +154,14 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Hapus', style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: Colors.white, fontFamily: 'Poppins'),
+            ),
           ),
         ],
       ),
@@ -146,12 +171,12 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
       setState(() => _isLoading = true);
       try {
         final double amount = (widget.expense['amount'] as num).toDouble();
-        
+
         // 1. Update Warung Money (Refund)
         final Map<String, dynamic> updateWarung = {
           'updated_at': DateTime.now().toIso8601String(),
         };
-        
+
         if (_selectedSource == 'warung') {
           _cache.uangKas += amount;
           updateWarung['uang_kas'] = _cache.uangKas;
@@ -160,10 +185,16 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           updateWarung['uang_kas_operasional'] = _cache.uangKasOperasional;
         }
 
-        await _supabase.from('WARUNG').update(updateWarung).eq('id', _cache.warungId!.toString());
-        
+        await _supabase
+            .from('WARUNG')
+            .update(updateWarung)
+            .eq('id', _cache.warungId!.toString());
+
         // 2. Delete Expense
-        await _supabase.from('PENGELUARAN').delete().eq('id', widget.expense['id'] as Object);
+        await _supabase
+            .from('PENGELUARAN')
+            .delete()
+            .eq('id', widget.expense['id'] as Object);
 
         if (mounted) {
           AppToast.showSuccess(context, 'Pengeluaran berhasil dihapus');
@@ -183,14 +214,20 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
     setState(() => _isLoading = true);
     try {
       final double oldAmount = (widget.expense['amount'] as num).toDouble();
-      final double newAmount = double.parse(_amountController.text);
-      final String oldSource = _extractExpenseSource(widget.expense['keterangan'] ?? '');
+      final double newAmount =
+          double.tryParse(
+            _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          0;
+      final String oldKeterangan =
+          widget.expense['keterangan'] as String? ?? '';
+      final String oldSource = _extractExpenseSource(oldKeterangan);
       final String newSource = _selectedSource;
 
       // Logic for adjusting money:
       // 1. Refund old amount from old source
       // 2. Deduct new amount from new source
-      
+
       final Map<String, dynamic> updateWarung = {
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -213,19 +250,26 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
       updateWarung['uang_kas_operasional'] = _cache.uangKasOperasional;
 
       // Update Database
-      await _supabase.from('WARUNG').update(updateWarung).eq('id', _cache.warungId!.toString());
+      await _supabase
+          .from('WARUNG')
+          .update(updateWarung)
+          .eq('id', _cache.warungId!.toString());
 
-
-      final sourceTag = newSource == 'operasional' ? '[Sumber: Operasional] ' : '[Sumber: Kas Warung] ';
+      final sourceTag = newSource == 'operasional'
+          ? '[Sumber: Operasional] '
+          : '[Sumber: Kas Warung] ';
       final finalKeterangan = '$sourceTag${_keteranganController.text.trim()}';
 
-      await _supabase.from('PENGELUARAN').update({
-        'kategori_id': _selectedKategoriId,
-        'amount': newAmount,
-        'keterangan': finalKeterangan,
-        'tanggal': _selectedDate.toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', widget.expense['id'] as Object);
+      await _supabase
+          .from('PENGELUARAN')
+          .update({
+            'kategori_id': _selectedKategoriId,
+            'amount': newAmount,
+            'keterangan': finalKeterangan,
+            'tanggal': _selectedDate.toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', widget.expense['id'] as Object);
 
       if (mounted) {
         AppToast.showSuccess(context, 'Pengeluaran berhasil diperbarui');
@@ -307,12 +351,16 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
                           shape: BoxShape.circle,
                           color: Colors.red.withValues(alpha: 0.9),
                         ),
-                        child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     GestureDetector(
-                      onTap: () => context.pop(),
+                      onTap: _closePage,
                       child: Container(
                         width: 40,
                         height: 40,
@@ -320,7 +368,11 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
                           shape: BoxShape.circle,
                           color: Colors.white,
                         ),
-                        child: const Icon(Icons.close, color: Colors.black, size: 24),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.black,
+                          size: 24,
+                        ),
                       ),
                     ),
                   ],
@@ -368,7 +420,11 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
                     _resolveIconPath(_selectedKategoriIcon),
                     width: 50,
                     height: 50,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.wallet, color: Color(0xFFF8BD00), size: 40),
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.wallet,
+                      color: Color(0xFFF8BD00),
+                      size: 40,
+                    ),
                   ),
                 ),
               ),
@@ -379,13 +435,20 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
                   children: [
                     const Text(
                       'Tanggal',
-                      style: TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Poppins'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontFamily: 'Poppins',
+                      ),
                     ),
                     const SizedBox(height: 4),
                     GestureDetector(
                       onTap: _selectDate,
                       child: Text(
-                        DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate),
+                        DateFormat(
+                          'dd MMMM yyyy',
+                          'id_ID',
+                        ).format(_selectedDate),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -404,22 +467,52 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           // Nominal
           const Text(
             'Nominal Pengeluaran (Rp)',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey, fontFamily: 'Poppins'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              fontFamily: 'Poppins',
+            ),
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red, fontFamily: 'Poppins'),
-            decoration: _inputDecoration('0'),
-            validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+            inputFormatters: [CurrencyInputFormatter()],
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+              fontFamily: 'Poppins',
+            ),
+            decoration: _inputDecoration('0').copyWith(
+              prefixText: 'Rp ',
+              prefixStyle: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Wajib diisi';
+              final parsed =
+                  double.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              if (parsed <= 0) return 'Nominal harus lebih dari 0';
+              return null;
+            },
           ),
           const SizedBox(height: 24),
 
           // Kategori
           const Text(
             'Kategori',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey, fontFamily: 'Poppins'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              fontFamily: 'Poppins',
+            ),
           ),
           const SizedBox(height: 8),
           GestureDetector(
@@ -433,7 +526,14 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_selectedKategoriName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
+                  Text(
+                    _selectedKategoriName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
                   const Icon(Icons.arrow_drop_down, color: AppTheme.primary),
                 ],
               ),
@@ -444,7 +544,12 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           // Sumber Dana
           const Text(
             'Sumber Dana',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey, fontFamily: 'Poppins'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              fontFamily: 'Poppins',
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -459,14 +564,21 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           // Keterangan
           const Text(
             'Keterangan / Catatan',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey, fontFamily: 'Poppins'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              fontFamily: 'Poppins',
+            ),
           ),
           const SizedBox(height: 8),
           TextFormField(
             controller: _keteranganController,
             maxLines: 3,
             style: const TextStyle(fontSize: 16, fontFamily: 'Poppins'),
-            decoration: _inputDecoration('Contoh: Beli bensin, Bayar listrik...'),
+            decoration: _inputDecoration(
+              'Contoh: Beli bensin, Bayar listrik...',
+            ),
           ),
         ],
       ),
@@ -483,7 +595,10 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primary : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? AppTheme.primary : const Color(0xFFD1EDD8), width: 1.5),
+            border: Border.all(
+              color: isSelected ? AppTheme.primary : const Color(0xFFD1EDD8),
+              width: 1.5,
+            ),
           ),
           child: Center(
             child: Text(
@@ -510,14 +625,21 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           onPressed: _isLoading ? null : _saveExpense,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFF8BD00),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
             elevation: 0,
           ),
           child: _isLoading
               ? const CircularProgressIndicator(color: Colors.white)
               : const Text(
                   'SIMPAN PERUBAHAN',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Poppins'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
         ),
       ),
@@ -528,9 +650,18 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
     return InputDecoration(
       hintText: hint,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFD1EDD8))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFD1EDD8))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primary)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD1EDD8)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD1EDD8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppTheme.primary),
+      ),
     );
   }
 
@@ -539,7 +670,9 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
       context: context,
       backgroundColor: Colors.white,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) {
         return DraggableScrollableSheet(
           initialChildSize: 0.6,
@@ -560,7 +693,14 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text('Pilih Kategori', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                  const Text(
+                    'Pilih Kategori',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Expanded(
                     child: ListView.separated(
@@ -575,26 +715,41 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
                         final cat = _categories[index];
                         final isSelected = _selectedKategoriId == cat['id'];
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 8,
+                          ),
                           leading: Image.asset(
                             _resolveIconPath(cat['icon'] as String?),
                             width: 32,
                             height: 32,
                           ),
                           title: Text(
-                            cat['nama_kategori'] ?? 'Lainnya', 
+                            cat['nama_kategori'] as String? ?? 'Lainnya',
                             style: TextStyle(
                               fontFamily: 'Poppins',
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? AppTheme.primary : Colors.black87,
-                            )
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? AppTheme.primary
+                                  : Colors.black87,
+                            ),
                           ),
-                          trailing: isSelected ? const Icon(Icons.check_circle, color: AppTheme.primary) : null,
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppTheme.primary,
+                                )
+                              : null,
                           onTap: () {
                             setState(() {
                               _selectedKategoriId = cat['id'] as String?;
-                              _selectedKategoriName = cat['nama_kategori'] as String? ?? 'Lainnya';
-                              _selectedKategoriIcon = cat['icon'] as String? ?? 'LainnyaPribadi.png';
+                              _selectedKategoriName =
+                                  cat['nama_kategori'] as String? ?? 'Lainnya';
+                              _selectedKategoriIcon =
+                                  cat['icon'] as String? ??
+                                  'LainnyaPribadi.png';
                             });
                             Navigator.pop(ctx);
                           },

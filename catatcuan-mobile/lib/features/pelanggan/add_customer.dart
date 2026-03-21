@@ -45,6 +45,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
           .from('WARUNG')
           .select('id')
           .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
           .maybeSingle();
 
       if (warung == null) {

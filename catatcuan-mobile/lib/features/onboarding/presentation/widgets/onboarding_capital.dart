@@ -11,11 +11,13 @@ class OnboardingCapital extends StatelessWidget {
     required this.capitalController,
     required this.onNext,
     required this.onBack,
+    this.isLoading = false,
   });
   final TextEditingController cashController;
   final TextEditingController capitalController;
   final VoidCallback onNext;
   final VoidCallback onBack;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +115,7 @@ class OnboardingCapital extends StatelessWidget {
                         const SizedBox(height: 8),
                         TextField(
                           controller: cashController,
+                          enabled: !isLoading,
                           keyboardType: TextInputType.number,
                           inputFormatters: [CurrencyInputFormatter()],
                           decoration: InputDecoration(
@@ -149,6 +152,7 @@ class OnboardingCapital extends StatelessWidget {
                         const SizedBox(height: 8),
                         TextField(
                           controller: capitalController,
+                          enabled: !isLoading,
                           keyboardType: TextInputType.number,
                           inputFormatters: [CurrencyInputFormatter()],
                           decoration: InputDecoration(
@@ -185,7 +189,7 @@ class OnboardingCapital extends StatelessWidget {
                       Expanded(
                         flex: 1,
                         child: OutlinedButton(
-                          onPressed: onBack,
+                          onPressed: isLoading ? null : onBack,
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 60),
                             side: const BorderSide(color: Color(0xFFE5E7EB)),
@@ -213,21 +217,54 @@ class OnboardingCapital extends StatelessWidget {
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: onNext,
+                            onPressed: isLoading ? null : onNext,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primary,
                               foregroundColor: Colors.white,
+                              disabledBackgroundColor: AppTheme.primary,
+                              disabledForegroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               elevation: 0,
                             ),
-                            child: Text(
-                              'Selesai',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              child: isLoading
+                                  ? Row(
+                                      key: const ValueKey('capital-loading'),
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.4,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Menyimpan...',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      'Selesai',
+                                      key: const ValueKey('capital-idle'),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),

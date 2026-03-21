@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { logAdminActivity } from '@/lib/admin-activity';
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -18,12 +19,17 @@ export async function login(formData: FormData) {
     return { error: error.message };
   }
 
+  await logAdminActivity(supabase, 'Admin login', {
+    email: data.email,
+  });
+
   revalidatePath('/', 'layout');
   redirect('/dashboard');
 }
 
 export async function logout() {
   const supabase = await createClient();
+  await logAdminActivity(supabase, 'Admin logout');
   await supabase.auth.signOut();
   revalidatePath('/', 'layout');
   redirect('/login');

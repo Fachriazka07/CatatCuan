@@ -58,6 +58,32 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         if (response != null) {
           final userId = response['id'] as String;
+          final status = response['status'] as String? ?? 'active';
+
+          if (status == 'inactive') {
+            AppToast.showInfo(
+              context,
+              'Akun Anda sedang dinonaktifkan. Hubungi admin untuk bantuan.',
+            );
+            return;
+          }
+
+          if (status == 'suspended') {
+            AppToast.showError(
+              context,
+              'Akun Anda diblokir. Silakan hubungi admin.',
+            );
+            return;
+          }
+
+          await Supabase.instance.client
+              .from('USERS')
+              .update({
+                'last_login_at': DateTime.now().toIso8601String(),
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', userId);
+
           // Save Session Locally
           await SessionService.saveSession(userId, phone);
           
@@ -83,6 +109,8 @@ class _LoginPageState extends State<LoginPage> {
           .from('WARUNG')
           .select()
           .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
           .maybeSingle();
 
       if (mounted) {

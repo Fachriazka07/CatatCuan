@@ -27,6 +27,8 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
+  static const String _initialDrawerNote = 'Saldo Awal (Uang Laci)';
+  static const String _initialCapitalNote = 'Modal Tambahan (Uang Pribadi)';
   final PageController _pageController = PageController();
   int _currentPage = 0;
   bool _isLoading = false;
@@ -57,6 +59,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _nextPage() {
+    if (_isLoading) return;
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -77,6 +80,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Future<void> _submitData() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
     
     final userId = await SessionService.getUserId();
@@ -98,22 +102,51 @@ class _OnboardingPageState extends State<OnboardingPage> {
           .single();
       final phone = userRow['phone_number'] as String;
 
-      // 1. Create Warung (phone auto-filled from registration)
-      final warungResponse = await Supabase.instance.client
+      final existingWarung = await Supabase.instance.client
           .from('WARUNG')
-          .insert({
-            'user_id': userId,
-            'nama_pemilik': _ownerNameController.text.trim(),
-            'nama_warung': _businessNameController.text.trim(),
-            'alamat': _businessAddressController.text.trim(),
-            'phone': phone,
-            'saldo_awal': cashInDrawer,
-            'uang_kas': personalCapital,
-          })
-          .select()
-          .single();
-      
-      final warungId = warungResponse['id'] as String;
+          .select('id')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final warungPayload = {
+        'user_id': userId,
+        'nama_pemilik': _ownerNameController.text.trim(),
+        'nama_warung': _businessNameController.text.trim(),
+        'alamat': _businessAddressController.text.trim(),
+        'phone': phone,
+        'saldo_awal': cashInDrawer,
+        'uang_kas': personalCapital,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      String warungId;
+      if (existingWarung != null) {
+        warungId = existingWarung['id'] as String;
+        await Supabase.instance.client
+            .from('WARUNG')
+            .update(warungPayload)
+            .eq('id', warungId);
+
+        await Supabase.instance.client
+            .from('BUKU_KAS')
+            .delete()
+            .eq('warung_id', warungId)
+            .eq('keterangan', _initialDrawerNote);
+        await Supabase.instance.client
+            .from('BUKU_KAS')
+            .delete()
+            .eq('warung_id', warungId)
+            .eq('keterangan', _initialCapitalNote);
+      } else {
+        final warungResponse = await Supabase.instance.client
+            .from('WARUNG')
+            .insert(warungPayload)
+            .select('id')
+            .single();
+        warungId = warungResponse['id'] as String;
+      }
 
       // 2. Record Initial Balance (Uang Laci)
       if (cashInDrawer > 0) {
@@ -123,7 +156,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           'sumber': 'saldo_awal',
           'amount': cashInDrawer,
           'saldo_setelah': cashInDrawer,
-          'keterangan': 'Saldo Awal (Uang Laci)',
+          'keterangan': _initialDrawerNote,
           'created_at': DateTime.now().toIso8601String(),
         });
       }
@@ -137,7 +170,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           'sumber': 'saldo_awal',
           'amount': personalCapital,
           'saldo_setelah': currentBalance,
-          'keterangan': 'Modal Tambahan (Uang Pribadi)',
+          'keterangan': _initialCapitalNote,
           'created_at': DateTime.now().add(const Duration(seconds: 1)).toIso8601String(),
         });
       }
@@ -166,6 +199,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Future<void> _seedCategories(String warungId) async {
     try {
+      final existingCategories = await Supabase.instance.client
+          .from('KATEGORI_PRODUK')
+          .select('id')
+          .eq('warung_id', warungId)
+          .limit(1);
+      if ((existingCategories as List).isNotEmpty) return;
+
       // Fetch active master categories from admin-managed table
       final masterData = await Supabase.instance.client
           .from('MASTER_KATEGORI_PRODUK')
@@ -212,6 +252,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Future<void> _seedSatuan(String warungId) async {
     try {
+      final existingSatuan = await Supabase.instance.client
+          .from('SATUAN_PRODUK')
+          .select('id')
+          .eq('warung_id', warungId)
+          .limit(1);
+      if ((existingSatuan as List).isNotEmpty) return;
+
       final masterData = await Supabase.instance.client
           .from('MASTER_SATUAN')
           .select('id, nama_satuan, sort_order')
@@ -328,6 +375,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   capitalController: _personalCapitalController,
                   onNext: _nextPage,
                   onBack: _previousPage,
+                  isLoading: _isLoading,
                 ),
               ],
             ),

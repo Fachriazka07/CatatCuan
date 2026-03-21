@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +30,15 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
   bool _isLoading = false;
   String? _warungId;
   String _sumberKas = 'warung'; // 'warung' or 'operasional'
+
+  void _closePage() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Future<void>.delayed(Duration.zero, () {
+      if (mounted && Navigator.of(context).canPop()) {
+        context.pop();
+      }
+    });
+  }
 
   static const Set<String> _validIcons = {
     'Kesehatan.png',
@@ -203,7 +213,7 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => context.pop(),
+                  onTap: _closePage,
                   child: Container(
                     width: 40,
                     height: 40,
@@ -413,13 +423,22 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
             child: TextFormField(
               controller: _jumlahController,
               keyboardType: TextInputType.number,
+              inputFormatters: [CurrencyInputFormatter()],
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFFDC2626),
                 fontFamily: 'Poppins',
               ),
-              decoration: _inputDecoration('0'),
+              decoration: _inputDecoration('0').copyWith(
+                prefixText: 'Rp ',
+                prefixStyle: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFDC2626),
+                  fontFamily: 'Poppins',
+                ),
+              ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Wajib diisi';
                 final val =
@@ -604,9 +623,13 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                       ),
                       itemBuilder: (context, index) {
                         final cat = _cache.expenseCategories[index];
-                        final isSelected = _selectedCategory?['id'] == cat['id'];
+                        final isSelected =
+                            _selectedCategory?['id'] == cat['id'];
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 8,
+                          ),
                           leading: Image.asset(
                             _resolveIconPath(cat['icon'] as String?),
                             width: 32,
@@ -616,11 +639,20 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                             cat['nama_kategori'] as String,
                             style: TextStyle(
                               fontFamily: 'Poppins',
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? AppTheme.primary : Colors.black87,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? AppTheme.primary
+                                  : Colors.black87,
                             ),
                           ),
-                          trailing: isSelected ? const Icon(Icons.check_circle, color: AppTheme.primary) : null,
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppTheme.primary,
+                                )
+                              : null,
                           onTap: () {
                             setState(() => _selectedCategory = cat);
                             Navigator.pop(ctx);
@@ -631,7 +663,10 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                   ),
                   const Divider(),
                   ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 8,
+                    ),
                     leading: Container(
                       width: 32,
                       height: 32,

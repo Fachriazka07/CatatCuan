@@ -39,13 +39,45 @@ class _SplashPageState extends State<SplashPage> {
       if (mounted) context.go('/welcome');
       return;
     }
-    
-    if (mounted) setState(() { _progress = 0.3; _statusText = 'Memeriksa warung...'; });
+
     try {
+      final user = await Supabase.instance.client
+          .from('USERS')
+          .select('id, status')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final userStatus = user?['status'] as String? ?? 'inactive';
+
+      if (user == null || userStatus != 'active') {
+        await SessionService.logout();
+        if (mounted) setState(() => _progress = 1.0);
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        if (mounted) context.go('/login');
+        return;
+      }
+
+      await Supabase.instance.client
+          .from('USERS')
+          .update({
+            'last_login_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      if (mounted) {
+        setState(() {
+          _progress = 0.3;
+          _statusText = 'Memeriksa warung...';
+        });
+      }
+
       final warung = await Supabase.instance.client
           .from('WARUNG')
           .select()
           .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
           .maybeSingle();
 
       if (warung == null) {

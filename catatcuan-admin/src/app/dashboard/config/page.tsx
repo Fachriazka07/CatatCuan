@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Settings, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logAdminActivity } from '@/lib/admin-activity';
 
 interface AppConfig {
   id: string;
@@ -110,6 +111,11 @@ export default function ConfigPage() {
         toast.error('Gagal update: ' + error.message);
         return;
       }
+      await logAdminActivity(supabase, 'Memperbarui konfigurasi aplikasi', {
+        config_id: editingConfig.id,
+        key: editingConfig.key,
+        value: formData.value.trim() || null,
+      });
       toast.success('Konfigurasi berhasil diupdate');
     } else {
       const { error } = await supabase.from('APP_CONFIG').insert({
@@ -122,6 +128,10 @@ export default function ConfigPage() {
         toast.error('Gagal menambah: ' + error.message);
         return;
       }
+      await logAdminActivity(supabase, 'Menambahkan konfigurasi aplikasi', {
+        key: formData.key.trim(),
+        value: formData.value.trim() || null,
+      });
       toast.success('Konfigurasi berhasil ditambahkan');
     }
 
@@ -141,6 +151,9 @@ export default function ConfigPage() {
       toast.error('Gagal menghapus: ' + error.message);
       return;
     }
+    await logAdminActivity(supabase, 'Menghapus konfigurasi aplikasi', {
+      config_id: id,
+    });
     toast.success('Konfigurasi berhasil dihapus');
     fetchConfigs();
   }

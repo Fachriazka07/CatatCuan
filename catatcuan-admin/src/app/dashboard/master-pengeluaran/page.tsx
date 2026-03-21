@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, Plus, Pencil, Trash2, Tag, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { logAdminActivity } from '@/lib/admin-activity';
 
 interface MasterKategoriPengeluaran {
   id: string;
@@ -122,6 +123,16 @@ export default function MasterPengeluaranPage() {
         toast.error('Gagal update: ' + error.message);
         return;
       }
+      await logAdminActivity(
+        supabase,
+        'Memperbarui master kategori pengeluaran',
+        {
+          kategori_id: editingKategori.id,
+          nama_kategori: formData.nama_kategori.trim(),
+          tipe: formData.tipe,
+          icon: formData.icon,
+        },
+      );
       toast.success('Kategori pengeluaran berhasil diupdate');
     } else {
       const { error } = await supabase.from('MASTER_KATEGORI_PENGELUARAN').insert({
@@ -135,6 +146,15 @@ export default function MasterPengeluaranPage() {
         toast.error('Gagal menambah: ' + error.message);
         return;
       }
+      await logAdminActivity(
+        supabase,
+        'Menambahkan master kategori pengeluaran',
+        {
+          nama_kategori: formData.nama_kategori.trim(),
+          tipe: formData.tipe,
+          icon: formData.icon,
+        },
+      );
       toast.success('Kategori pengeluaran berhasil ditambahkan');
     }
 
@@ -154,6 +174,13 @@ export default function MasterPengeluaranPage() {
       toast.error('Gagal menonaktifkan: ' + error.message);
       return;
     }
+    await logAdminActivity(
+      supabase,
+      'Menonaktifkan master kategori pengeluaran',
+      {
+        kategori_id: id,
+      },
+    );
     toast.success('Kategori berhasil dinonaktifkan');
     fetchKategoris();
   }

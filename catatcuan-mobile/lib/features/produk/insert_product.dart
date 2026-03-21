@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/core/utils/barcode_helper.dart';
@@ -42,6 +43,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
   bool _tanpaStok = false;
   String? _warungId;
   String _kodeProduk = '';
+
+  void _closePage() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Future<void>.delayed(Duration.zero, () {
+      if (mounted && Navigator.of(context).canPop()) {
+        context.pop();
+      }
+    });
+  }
 
   /// Valid icon filenames in assets/icon/produk-icon/
   static const Set<String> _validIcons = {
@@ -95,10 +105,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
   double _margin = 0;
   void _calculateMargin() {
     final beli = double.tryParse(
-            _hargaModalController.text.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+            _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
         0;
     final jual = double.tryParse(
-            _hargaJualController.text.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+            _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
         0;
     setState(() => _margin = jual - beli);
   }
@@ -122,10 +132,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
         'nama_produk': _namaController.text,
         'barcode': _kodeProduk,
         'harga_modal': double.tryParse(
-                _hargaModalController.text.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+                _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
             0,
         'harga_jual': double.tryParse(
-                _hargaJualController.text.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+                _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
             0,
         'stok_saat_ini':
             _tanpaStok ? 0 : (int.tryParse(_stokController.text) ?? 0),
@@ -214,7 +224,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => context.pop(),
+                  onTap: _closePage,
                   child: Container(
                     width: 40,
                     height: 40,
@@ -595,6 +605,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       child: TextFormField(
                         controller: _hargaModalController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [CurrencyInputFormatter()],
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Wajib' : null,
                         style: TextStyle(
@@ -603,7 +614,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                           color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                           fontFamily: 'Poppins',
                         ),
-                        decoration: _inputDecoration(''),
+                        decoration: _inputDecoration('').copyWith(
+                          prefixText: 'Rp ',
+                          prefixStyle: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -629,6 +648,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       child: TextFormField(
                         controller: _hargaJualController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [CurrencyInputFormatter()],
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Wajib' : null,
                         style: TextStyle(
@@ -637,7 +657,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                           color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                           fontFamily: 'Poppins',
                         ),
-                        decoration: _inputDecoration(''),
+                        decoration: _inputDecoration('').copyWith(
+                          prefixText: 'Rp ',
+                          prefixStyle: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -663,7 +691,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'Rp ${_margin.abs().toStringAsFixed(0)},-',
+              'Rp ${formatIdrNumber(_margin.abs().round())},-',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,

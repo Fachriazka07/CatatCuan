@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -17,8 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Users, Store, Search } from 'lucide-react';
+import { Users, Store, Search, ArrowUpRight } from 'lucide-react';
+import { UserStatusBadge } from '@/components/admin/status-badge';
 
 interface User {
   id: string;
@@ -31,6 +33,7 @@ interface User {
 
 interface Warung {
   id: string;
+  user_id: string;
   nama_warung: string;
   nama_pemilik: string | null;
   phone: string | null;
@@ -42,29 +45,6 @@ interface Warung {
 interface UserSearchProps {
   users: User[];
   warungs: Warung[];
-}
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'active':
-      return (
-        <Badge className="bg-brand/10 text-brand hover:bg-brand/20">
-          Aktif
-        </Badge>
-      );
-    case 'inactive':
-      return (
-        <Badge variant="secondary">Nonaktif</Badge>
-      );
-    case 'suspended':
-      return (
-        <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20">
-          Diblokir
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
 }
 
 export default function UserSearch({ users, warungs }: UserSearchProps) {
@@ -119,7 +99,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
           </div>
           <CardDescription>
             {query
-              ? `Hasil pencarian "${search}" — ${filteredUsers.length} user ditemukan`
+              ? `Hasil pencarian "${search}" - ${filteredUsers.length} user ditemukan`
               : 'Semua user yang terdaftar di platform'}
           </CardDescription>
         </CardHeader>
@@ -138,9 +118,10 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                   <TableRow>
                     <TableHead>Nama User</TableHead>
                     <TableHead>No. Telepon</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Status Akun</TableHead>
                     <TableHead>Terdaftar</TableHead>
-                    <TableHead>Login Terakhir</TableHead>
+                    <TableHead>Terakhir Masuk</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -152,7 +133,9 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                       <TableCell className="font-mono text-sm">
                         {user.phone_number}
                       </TableCell>
-                      <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        <UserStatusBadge status={user.status} />
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(user.created_at).toLocaleDateString('id-ID')}
                       </TableCell>
@@ -160,6 +143,14 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                         {user.last_login_at
                           ? new Date(user.last_login_at).toLocaleString('id-ID')
                           : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/dashboard/users/${user.id}`}>
+                            Detail
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -179,7 +170,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
           </div>
           <CardDescription>
             {query
-              ? `Hasil pencarian "${search}" — ${filteredWarungs.length} warung ditemukan`
+              ? `Hasil pencarian "${search}" - ${filteredWarungs.length} warung ditemukan`
               : 'Semua warung yang terdaftar di platform'}
           </CardDescription>
         </CardHeader>
@@ -201,6 +192,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                     <TableHead>No. Telepon</TableHead>
                     <TableHead>Alamat</TableHead>
                     <TableHead>Terdaftar</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -220,6 +212,14 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(warung.created_at).toLocaleDateString('id-ID')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/dashboard/warungs/${warung.id}`}>
+                            Detail
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
