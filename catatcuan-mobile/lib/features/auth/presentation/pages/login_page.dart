@@ -47,18 +47,19 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      // CUSTOM AUTH: Query USERS table
-      final response = await Supabase.instance.client
-          .from('USERS')
-          .select()
-          .eq('phone_number', phone)
-          .eq('password', password)
-          .maybeSingle();
+      final response = await Supabase.instance.client.rpc(
+        'login_mobile_user',
+        params: {
+          'p_phone': phone,
+          'p_password': password,
+        },
+      );
 
       if (mounted) {
         if (response != null) {
-          final userId = response['id'] as String;
-          final status = response['status'] as String? ?? 'active';
+          final loginResult = Map<String, dynamic>.from(response as Map);
+          final userId = loginResult['id'] as String;
+          final status = loginResult['status'] as String? ?? 'active';
 
           if (status == 'inactive') {
             AppToast.showInfo(
@@ -75,14 +76,6 @@ class _LoginPageState extends State<LoginPage> {
             );
             return;
           }
-
-          await Supabase.instance.client
-              .from('USERS')
-              .update({
-                'last_login_at': DateTime.now().toIso8601String(),
-                'updated_at': DateTime.now().toIso8601String(),
-              })
-              .eq('id', userId);
 
           // Save Session Locally
           await SessionService.saveSession(userId, phone);

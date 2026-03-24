@@ -5,7 +5,6 @@ import {
   Boxes,
   History,
   MapPin,
-  Phone,
   Receipt,
   ShoppingCart,
   Store,
@@ -84,6 +83,19 @@ interface CashbookEntry {
   sumber: string;
   amount: number | string;
   saldo_setelah: number | string;
+}
+
+function cleanExpenseNote(note: string | null | undefined) {
+  return (note ?? '')
+    .replace(/^\[Sumber:\s*[^\]]+\]\s*/i, '')
+    .trim();
+}
+
+function extractExpenseSource(note: string | null | undefined) {
+  const source = note?.match(/^\[Sumber:\s*([^\]]+)\]/i)?.[1]?.trim() ?? '';
+  if (!source) return 'Tanpa label';
+  if (source.toLowerCase() === 'warung') return 'Kas Warung';
+  return source;
 }
 
 function EmptyState({ label }: { label: string }) {
@@ -219,7 +231,6 @@ export default async function WarungDetailPage({
                   <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">ID</Badge> 
                   {formatShortId(warung.id)}
                 </span>
-                <span>Pemilik: {warung.nama_pemilik ?? '-'}</span>
                 <span>Terakhir masuk: {formatDateTime(user?.last_login_at ?? null)}</span>
               </div>
             }
@@ -228,7 +239,7 @@ export default async function WarungDetailPage({
         <div className="lg:col-span-1">
           <DetailSection
             title="Status Akun"
-            description="Informasi akses pemilik"
+            description="Informasi akses pemilik warung"
             className="h-full"
           >
             <div className="space-y-4">
@@ -239,7 +250,10 @@ export default async function WarungDetailPage({
               )}
               <div className="text-xs text-muted-foreground">
                 <p>No. HP: {user?.phone_number ?? '-'}</p>
-                <p className="mt-1">ID Pemilik: <span className="font-mono">{formatShortId(user?.id)}</span></p>
+                <p className="mt-1">
+                  ID Pemilik:{' '}
+                  <span className="font-mono">{formatShortId(user?.id)}</span>
+                </p>
               </div>
               {user && (
                 <Button variant="outline" size="sm" className="w-full" asChild>
@@ -304,7 +318,7 @@ export default async function WarungDetailPage({
         <div className="lg:col-span-2">
           <DetailSection
             title="Profil Warung"
-            description="Informasi operasional utama"
+            description="Informasi operasional utama tanpa mencampur detail akun pemilik"
             className="h-full"
           >
             <DetailInfoGrid
@@ -323,12 +337,20 @@ export default async function WarungDetailPage({
                   ),
                 },
                 {
+                  label: 'No. Telepon Warung',
+                  value: warung.phone ?? user?.phone_number ?? '-',
+                },
+                {
                   label: 'Uang Kas',
                   value: formatCurrency(warung.uang_kas),
                 },
                 {
                   label: 'Kas Operasional',
                   value: formatCurrency(warung.uang_kas_operasional),
+                },
+                {
+                  label: 'Terakhir Diperbarui',
+                  value: formatDateTime(warung.updated_at),
                 },
               ]}
             />
@@ -397,7 +419,7 @@ export default async function WarungDetailPage({
 
         <DetailSection
           title="Pengeluaran Terbaru"
-          description="Biaya operasional terakhir"
+          description="Biaya operasional terakhir dengan sumber dana yang lebih rapi"
         >
           {(recentExpenses.data as RecentExpense[] | null)?.length ? (
             <div className="overflow-x-auto">
@@ -405,6 +427,7 @@ export default async function WarungDetailPage({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Keterangan</TableHead>
+                    <TableHead>Sumber</TableHead>
                     <TableHead>Nominal</TableHead>
                     <TableHead>Tanggal</TableHead>
                   </TableRow>
@@ -413,7 +436,12 @@ export default async function WarungDetailPage({
                   {(recentExpenses.data as RecentExpense[]).map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell className="max-w-[150px] truncate text-xs font-medium">
-                        {expense.keterangan ?? '-'}
+                        {cleanExpenseNote(expense.keterangan) || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">
+                          {extractExpenseSource(expense.keterangan)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs font-semibold">{formatCurrency(expense.amount)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{formatDateTime(expense.tanggal)}</TableCell>

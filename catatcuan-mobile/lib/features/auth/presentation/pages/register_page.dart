@@ -63,20 +63,19 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      // CUSTOM AUTH: Insert directly to USERS table
-      final response = await Supabase.instance.client
-          .from('USERS')
-          .insert({
-            'phone_number': phone,
-            'password': password,
-            'status': 'active',
-          })
-          .select()
-          .single();
+      final response = await Supabase.instance.client.rpc(
+        'register_mobile_user',
+        params: {
+          'p_phone': phone,
+          'p_password': password,
+        },
+      );
+
+      final registerResult = Map<String, dynamic>.from(response as Map);
 
       if (mounted) {
-        final userId = response['id'] as String;
-        
+        final userId = registerResult['id'] as String;
+
         // Save Session Locally
         await SessionService.saveSession(userId, phone);
 
@@ -86,10 +85,12 @@ class _RegisterPageState extends State<RegisterPage> {
     } catch (e) {
       if (mounted) {
         final errorMessage = e.toString();
-        if (errorMessage.contains('duplicate key')) {
-          // Nomor HP sudah terdaftar
+        if (errorMessage.contains('PHONE_ALREADY_EXISTS') ||
+            errorMessage.contains('duplicate key')) {
+          AppToast.showInfo(context, 'Nomer HP sudah terdaftar');
+          return;
         }
-        
+
         AppToast.showError(context, 'Error: ${e.toString()}');
       }
     } finally {

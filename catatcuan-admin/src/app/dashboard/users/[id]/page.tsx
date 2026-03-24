@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   Boxes,
-  Phone,
   Receipt,
   ShoppingCart,
   Store,
@@ -76,6 +75,19 @@ interface RecentExpense {
   tanggal: string;
 }
 
+function cleanExpenseNote(note: string | null | undefined) {
+  return (note ?? '')
+    .replace(/^\[Sumber:\s*[^\]]+\]\s*/i, '')
+    .trim();
+}
+
+function extractExpenseSource(note: string | null | undefined) {
+  const source = note?.match(/^\[Sumber:\s*([^\]]+)\]/i)?.[1]?.trim() ?? '';
+  if (!source) return 'Tanpa label';
+  if (source.toLowerCase() === 'warung') return 'Kas Warung';
+  return source;
+}
+
 function EmptyState({ label }: { label: string }) {
   return (
     <div className="flex min-h-36 items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 px-6 text-center">
@@ -90,6 +102,13 @@ export default async function UserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // Simple UUID validation check to prevent database error
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    notFound();
+  }
+
   const supabase = await createClient();
 
   const userQuery = await supabase
@@ -291,30 +310,42 @@ export default async function UserDetailPage({
         <div className="lg:col-span-1">
           <DetailSection
             title="Profil Akun"
-            description="Informasi identitas user"
+            description="Informasi akses dan identitas teknis user"
             className="h-full"
           >
             <DetailInfoGrid
               items={[
                 {
-                  label: 'Nama Pemilik',
-                  value: displayName,
-                },
-                {
-                  label: 'No. Telepon',
-                  value: user.phone_number,
-                },
-                {
-                  label: 'Hutang Aktif',
+                  label: 'ID User',
                   value: (
-                    <span className="text-rose-500 font-bold">
-                      {formatNumber(activeDebtCount.count ?? 0)}
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {user.id}
                     </span>
                   ),
                 },
                 {
+                  label: 'Status Akun',
+                  value: <UserStatusBadge status={user.status} />,
+                },
+                {
+                  label: 'Tanggal Daftar',
+                  value: formatDateTime(user.created_at),
+                },
+                {
+                  label: 'Terakhir Diperbarui',
+                  value: formatDateTime(user.updated_at),
+                },
+                {
                   label: 'Login Terakhir',
                   value: formatDateTime(user.last_login_at),
+                },
+                {
+                  label: 'Hutang Aktif',
+                  value: (
+                    <span className="font-bold text-rose-500">
+                      {formatNumber(activeDebtCount.count ?? 0)}
+                    </span>
+                  ),
                 },
               ]}
             />
@@ -415,14 +446,16 @@ export default async function UserDetailPage({
 
         <DetailSection
           title="Pengeluaran Terbaru"
-          description="Pantau pengeluaran terakhir"
+          description="Pantau pengeluaran terakhir tanpa menampilkan label internal mentah"
         >
           {(recentExpenses.data as RecentExpense[] | null)?.length ? (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Warung</TableHead>
                     <TableHead>Keterangan</TableHead>
+                    <TableHead>Sumber</TableHead>
                     <TableHead>Nominal</TableHead>
                     <TableHead>Tanggal</TableHead>
                   </TableRow>
@@ -430,8 +463,16 @@ export default async function UserDetailPage({
                 <TableBody>
                   {(recentExpenses.data as RecentExpense[]).map((expense) => (
                     <TableRow key={expense.id}>
+                      <TableCell className="text-xs font-medium">
+                        {warungNameById.get(expense.warung_id) ?? '-'}
+                      </TableCell>
                       <TableCell className="max-w-[150px] truncate text-xs font-medium">
-                        {expense.keterangan ?? '-'}
+                        {cleanExpenseNote(expense.keterangan) || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">
+                          {extractExpenseSource(expense.keterangan)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs font-semibold">{formatCurrency(expense.amount)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{formatDateTime(expense.tanggal)}</TableCell>
