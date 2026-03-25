@@ -1,7 +1,9 @@
+import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HutangService {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final DataCacheService _cache = DataCacheService.instance;
 
   // Fetch all hutang/piutang for a warung
   Future<List<Map<String, dynamic>>> getHutangList(String warungId) async {
@@ -74,5 +76,40 @@ class HutangService {
       'amount_sisa': newSisa > 0 ? newSisa : 0,
       'status': status,
     }).eq('id', hutangId);
+
+    // 4. Update kas and record to Buku Kas.
+    final warungId = currentHutang['warung_id'] as String?;
+    final jenis = (currentHutang['jenis'] as String? ?? '').toUpperCase();
+    if (warungId != null && amountPaid > 0) {
+      final isPiutang = jenis == 'PIUTANG';
+      final amountValue = amountPaid.toDouble();
+
+      if (isPiutang) {
+        _cache.uangKas += amountValue;
+      } else {
+        _cache.uangKas -= amountValue;
+      }
+
+      final saldoSetelah = _cache.saldoAwal + _cache.uangKas;
+
+      await _supabase.from('WARUNG').update({
+        'uang_kas': _cache.uangKas,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', warungId);
+
+      await _supabase.from('BUKU_KAS').insert({
+        'warung_id': warungId,
+        'tanggal': paymentData['tanggal'] ?? DateTime.now().toIso8601String(),
+        'tipe': isPiutang ? 'masuk' : 'keluar',
+        'sumber': 'hutang_bayar',
+        'reference_id': hutangId,
+        'reference_type': 'HUTANG',
+        'amount': amountValue,
+        'saldo_setelah': saldoSetelah,
+        'keterangan': isPiutang
+            ? 'Pembayaran piutang diterima'
+            : 'Pembayaran hutang dilakukan',
+      });
+    }
   }
 }

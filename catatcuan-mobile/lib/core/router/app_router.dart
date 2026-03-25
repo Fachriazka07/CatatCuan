@@ -1,3 +1,8 @@
+import 'package:catatcuan_mobile/features/buku_kas/adjustment/adjustment_page.dart';
+import 'package:catatcuan_mobile/features/buku_kas/buku_kas_page.dart';
+import 'package:catatcuan_mobile/features/buku_kas/transaction/uang_keluar_page.dart';
+import 'package:catatcuan_mobile/features/buku_kas/transaction/uang_masuk_page.dart';
+import 'package:catatcuan_mobile/features/buku_kas/transfer/transfer_page.dart';
 import 'package:catatcuan_mobile/features/home/presentation/pages/home_page.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:catatcuan_mobile/features/produk/insert_product.dart';
@@ -28,18 +33,12 @@ class AppRouter {
     initialLocation: '/',
     debugLogDiagnostics: true,
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const SplashPage(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomePage(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterPage(),
@@ -48,10 +47,7 @@ class AppRouter {
         path: '/onboarding',
         builder: (context, state) => const OnboardingPage(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomePage(),
-      ),
+      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       // Feature Placeholders
       GoRoute(
         path: '/produk',
@@ -61,7 +57,9 @@ class AppRouter {
         path: '/produk/add',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          return InsertProductPage(initialBarcode: extra?['barcode'] as String?);
+          return InsertProductPage(
+            initialBarcode: extra?['barcode'] as String?,
+          );
         },
       ),
       GoRoute(
@@ -90,7 +88,23 @@ class AppRouter {
       ),
       GoRoute(
         path: '/buku-kas',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Halaman Buku Kas'))),
+        builder: (context, state) => const BukuKasPage(),
+      ),
+      GoRoute(
+        path: '/buku-kas/uang-masuk',
+        builder: (context, state) => const UangMasukPage(),
+      ),
+      GoRoute(
+        path: '/buku-kas/uang-keluar',
+        builder: (context, state) => const UangKeluarPage(),
+      ),
+      GoRoute(
+        path: '/buku-kas/transfer',
+        builder: (context, state) => const TransferPage(),
+      ),
+      GoRoute(
+        path: '/buku-kas/adjustment',
+        builder: (context, state) => const AdjustmentPage(),
       ),
       GoRoute(
         path: '/hutang',
@@ -130,7 +144,9 @@ class AppRouter {
         path: '/transaksi/checkout',
         builder: (context, state) {
           final rawCart = state.extra as Map;
-          final cartData = rawCart.map((k, v) => MapEntry(k as String, (v as num).toInt()));
+          final cartData = rawCart.map(
+            (k, v) => MapEntry(k as String, (v as num).toInt()),
+          );
           return CheckoutPage(initialCart: cartData);
         },
       ),
@@ -143,11 +159,13 @@ class AppRouter {
       ),
       GoRoute(
         path: '/laporan',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Halaman Laporan'))),
+        builder: (context, state) =>
+            const Scaffold(body: Center(child: Text('Halaman Laporan'))),
       ),
       GoRoute(
         path: '/stats',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Halaman Stats'))),
+        builder: (context, state) =>
+            const Scaffold(body: Center(child: Text('Halaman Stats'))),
       ),
       GoRoute(
         path: '/setting',
@@ -156,4 +174,3 @@ class AppRouter {
     ],
   );
 }
-

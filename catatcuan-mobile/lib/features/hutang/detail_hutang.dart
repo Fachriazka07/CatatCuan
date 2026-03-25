@@ -260,7 +260,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                                     'hutang_id': _data['id'] as String,
                                     'amount': val,
                                     'metode_bayar': 'tunai',
-                                    'tanggal': DateTime.now().toIso8601String(),
+                                    'tanggal': DateTime.now().toUtc().toIso8601String(),
                                   },
                                 );
 
@@ -448,6 +448,8 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: notesCtrl,
+                    minLines: 3,
+                    maxLines: 5,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -665,7 +667,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
     );
 
     final name = _pelangganName;
-    final notes = _data['catatan'] as String? ?? '-';
+    final notes = (_data['catatan'] as String? ?? '').trim();
     final total = (_data['amount_awal'] as num).toDouble();
     final paid = (_data['amount_terbayar'] as num).toDouble();
     final debt = (_data['amount_sisa'] as num).toDouble();
@@ -763,11 +765,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              _buildAmountRow(
-                                'Catatan',
-                                notes,
-                                const Color(0xFF374151),
-                              ),
+                              _buildNotesSection('Catatan', notes),
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 16),
                                 child: Divider(
@@ -1057,6 +1055,46 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
             fontWeight: FontWeight.bold,
             fontSize: 18,
             fontFamily: 'Poppins',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotesSection(String label, String notes) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF6B7280),
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Text(
+            notes.isEmpty ? '-' : notes,
+            style: const TextStyle(
+              color: Color(0xFF374151),
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
           ),
         ),
       ],

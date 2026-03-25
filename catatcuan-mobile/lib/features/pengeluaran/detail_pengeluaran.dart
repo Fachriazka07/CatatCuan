@@ -27,7 +27,7 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
   String? _selectedKategoriId;
   String _selectedKategoriName = 'Lainnya';
   String _selectedKategoriIcon = 'LainnyaPribadi.png';
-  String _selectedSource = 'warung'; // 'warung' or 'operasional'
+  String _selectedSource = 'warung';
 
   bool _isLoading = false;
   List<Map<String, dynamic>> _categories = [];
@@ -190,6 +190,12 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
             .update(updateWarung)
             .eq('id', _cache.warungId!.toString());
 
+        await _supabase
+            .from('BUKU_KAS')
+            .delete()
+            .eq('reference_id', widget.expense['id'] as Object)
+            .eq('reference_type', 'PENGELUARAN');
+
         // 2. Delete Expense
         await _supabase
             .from('PENGELUARAN')
@@ -223,6 +229,7 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
           widget.expense['keterangan'] as String? ?? '';
       final String oldSource = _extractExpenseSource(oldKeterangan);
       final String newSource = _selectedSource;
+      final expenseTimestamp = _selectedDate.toUtc().toIso8601String();
 
       // Logic for adjusting money:
       // 1. Refund old amount from old source
@@ -241,11 +248,30 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
 
       // Deduct new
       if (newSource == 'warung') {
-        _cache.uangKas -= newAmount;
+        final totalUangWarung = _cache.saldoAwal + _cache.uangKas;
+        if (newAmount > totalUangWarung) {
+          if (mounted) {
+            AppToast.showWarning(context, 'Saldo uang warung tidak cukup');
+          }
+          return;
+        }
+
+        double remaining = newAmount;
+        if (_cache.uangKas >= remaining) {
+          _cache.uangKas -= remaining;
+        } else {
+          remaining -= _cache.uangKas;
+          _cache.uangKas = 0;
+          _cache.saldoAwal = (_cache.saldoAwal - remaining).clamp(
+            0,
+            double.infinity,
+          );
+        }
       } else {
         _cache.uangKasOperasional -= newAmount;
       }
 
+      updateWarung['saldo_awal'] = _cache.saldoAwal;
       updateWarung['uang_kas'] = _cache.uangKas;
       updateWarung['uang_kas_operasional'] = _cache.uangKasOperasional;
 
@@ -257,7 +283,7 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
 
       final sourceTag = newSource == 'operasional'
           ? '[Sumber: Operasional] '
-          : '[Sumber: Kas Warung] ';
+          : '[Sumber: Warung] ';
       final finalKeterangan = '$sourceTag${_keteranganController.text.trim()}';
 
       await _supabase
@@ -266,10 +292,41 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
             'kategori_id': _selectedKategoriId,
             'amount': newAmount,
             'keterangan': finalKeterangan,
-            'tanggal': _selectedDate.toIso8601String(),
+            'tanggal': expenseTimestamp,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', widget.expense['id'] as Object);
+
+      final saldoSetelah = _cache.saldoAwal + _cache.uangKas;
+      final cashBookPayload = {
+        'tanggal': expenseTimestamp,
+        'tipe': 'keluar',
+        'sumber': 'pengeluaran',
+        'amount': newAmount,
+        'saldo_setelah': saldoSetelah,
+        'keterangan': finalKeterangan,
+      };
+
+      final existingEntries = await _supabase
+          .from('BUKU_KAS')
+          .select('id')
+          .eq('reference_id', widget.expense['id'] as Object)
+          .eq('reference_type', 'PENGELUARAN')
+          .limit(1);
+
+      if (existingEntries.isEmpty) {
+        await _supabase.from('BUKU_KAS').insert({
+          'warung_id': _cache.warungId,
+          'reference_id': widget.expense['id'],
+          'reference_type': 'PENGELUARAN',
+          ...cashBookPayload,
+        });
+      } else {
+        await _supabase
+            .from('BUKU_KAS')
+            .update(cashBookPayload)
+            .eq('id', existingEntries.first['id'] as Object);
+      }
 
       if (mounted) {
         AppToast.showSuccess(context, 'Pengeluaran berhasil diperbarui');
@@ -552,12 +609,33 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildSourceChip('warung', 'Kas Warung'),
-              const SizedBox(width: 12),
-              _buildSourceChip('operasional', 'Operasional'),
-            ],
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: _selectedSource == 'operasional'
+                  ? const Color(0xFFFFF7ED)
+                  : AppTheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _selectedSource == 'operasional'
+                    ? const Color(0xFFF8BD00)
+                    : const Color(0xFFD1EDD8),
+                width: 1.5,
+              ),
+            ),
+            child: Text(
+              _selectedSource == 'operasional'
+                  ? 'Kas Operasional (Data Lama)'
+                  : 'Kas Warung',
+              style: TextStyle(
+                color: _selectedSource == 'operasional'
+                    ? const Color(0xFFB45309)
+                    : AppTheme.primary,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -581,36 +659,6 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSourceChip(String value, String label) {
-    final isSelected = _selectedSource == value;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedSource = value),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppTheme.primary : const Color(0xFFD1EDD8),
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

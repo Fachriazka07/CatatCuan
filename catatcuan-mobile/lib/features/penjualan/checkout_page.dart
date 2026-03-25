@@ -118,6 +118,61 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   num get _netTotal => (_totalPrice - _discount).clamp(0, double.infinity);
 
+  Map<String, dynamic>? _findProductById(String pid) {
+    for (final product in _cache.products) {
+      if (product['id'] == pid) {
+        return product;
+      }
+    }
+    return null;
+  }
+
+  String _buildHutangNotes(List<Map<String, dynamic>> items) {
+    final buffer = StringBuffer();
+
+    for (final item in items) {
+      final qty = (item['quantity'] as num?)?.toInt() ?? 0;
+      final hargaSatuan = num.parse((item['harga_satuan'] ?? 0).toString());
+      final subtotal = num.parse((item['subtotal'] ?? 0).toString());
+      final namaProduk = item['nama_produk']?.toString() ?? 'Produk';
+
+      buffer.writeln(
+        '$namaProduk ${qty}x ${_formatter.format(hargaSatuan)} = ${_formatter.format(subtotal)}',
+      );
+    }
+
+    if (_discount > 0) {
+      buffer.writeln('Diskon: ${_formatter.format(_discount)}');
+    }
+
+    return buffer.toString().trim();
+  }
+
+  Future<void> _insertBukuKasPenjualan({
+    required String warungId,
+    required String penjualanId,
+    required DateTime tanggal,
+    required double amount,
+    required String invoiceNo,
+    required String keterangan,
+  }) async {
+    if (amount <= 0) return;
+
+    final saldoSetelah = _cache.saldoAwal + _cache.uangKas;
+
+    await _supabase.from('BUKU_KAS').insert({
+      'warung_id': warungId,
+      'tanggal': tanggal.toUtc().toIso8601String(),
+      'tipe': 'masuk',
+      'sumber': 'penjualan',
+      'reference_id': penjualanId,
+      'reference_type': 'PENJUALAN',
+      'amount': amount,
+      'saldo_setelah': saldoSetelah,
+      'keterangan': '$invoiceNo - $keterangan',
+    });
+  }
+
   void _updateQty(String pid, int delta) {
     final currentQty = _cart[pid] ?? 0;
     final newQty = currentQty + delta;
@@ -125,10 +180,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
     // Validations
     if (newQty < 0) return;
 
+    if (delta > 0) {
+      final product = _findProductById(pid);
+      final stock =
+          num.parse((product?['stok_saat_ini'] ?? 0).toString()).toInt();
+
+      if (currentQty >= stock && stock > 0) {
+        AppToast.showWarning(context, 'Stok tidak mencukupi');
+        return;
+      }
+
+      if (stock <= 0) {
+        AppToast.showWarning(context, 'Produk sedang habis');
+        return;
+      }
+    }
+
     if (newQty == 0) {
       _cart.remove(pid);
     } else {
-      // Assuming no stock check needed here, but you could add the same check as pos_cashier
       _cart[pid] = newQty;
     }
 
@@ -188,10 +258,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           context,
           'Pilih pelanggan untuk pembayaran hutang!',
         );
-        return;
-      }
-      if (_jatuhTempo == null) {
-        AppToast.showWarning(context, 'Tentukan tanggal jatuh tempo!');
         return;
       }
     } else if (_paymentMethod == 'TUNAI') {
@@ -284,11 +350,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // 3. Insert HUTANG if necessary
       if (_paymentMethod == 'HUTANG') {
         final sisaHutang = _netTotal - dp;
+        final hutangNotes = _buildHutangNotes(itemsToInsert);
 
         final hutangData = {
           'warung_id': warungId,
           'pelanggan_id': _selectedCustomerId,
           'penjualan_id': penjualanId,
+          'catatan': hutangNotes,
           'amount_awal': _netTotal,
           'amount_terbayar': dp,
           'amount_sisa': sisaHutang,
@@ -335,15 +403,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
             .eq('id', pid);
       }
 
-      // 5. Insert BUKU_KAS entry (cash in)
-      if (_paymentMethod == 'TUNAI') {
-        // Tunai: full net total masuk
-        _cache.uangKas += _netTotal.toDouble();
-      } else {
-        // Hutang: only DP goes into kas
-        if (dp > 0) {
-          _cache.uangKas += dp.toDouble();
-        }
+      final cashReceived = _paymentMethod == 'TUNAI'
+          ? _netTotal.toDouble()
+          : dp.toDouble();
+
+      // 5. Update kas based on money actually received right now.
+      // Kasbon/hutang should only add DP, not the full invoice amount.
+      if (cashReceived > 0) {
+        _cache.uangKas += cashReceived;
       }
 
       // Refresh product cache
@@ -357,6 +424,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', warungId);
+
+      await _insertBukuKasPenjualan(
+        warungId: warungId,
+        penjualanId: penjualanId as String,
+        tanggal: timestamp,
+        amount: cashReceived,
+        invoiceNo: invoiceNo,
+        keterangan: _paymentMethod == 'TUNAI'
+            ? 'Penjualan tunai'
+            : dp > 0
+            ? 'DP kasbon'
+            : 'Penjualan kasbon tanpa DP',
+      );
 
       if (mounted) {
         AppToast.showSuccess(context, 'Transaksi Berhasil!');
@@ -560,6 +640,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
             final pid = product['id'] as String;
             final qty = _cart[pid] ?? 0;
             final price = num.parse((product['harga_jual'] ?? 0).toString());
+            final stock = num.parse((product['stok_saat_ini'] ?? 0).toString()).toInt();
+            final isAddDisabled = stock <= 0 || qty >= stock;
 
             String iconName = 'Lainya.png';
             if (product['KATEGORI_PRODUK'] != null) {
@@ -664,14 +746,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     onTap: () => _updateQty(pid, 1),
                                     child: Container(
                                       padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: AppTheme.primary,
+                                      decoration: BoxDecoration(
+                                        color: isAddDisabled
+                                            ? Colors.grey[300]
+                                            : AppTheme.primary,
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.add,
                                         size: 20,
-                                        color: Colors.white,
+                                        color: isAddDisabled
+                                            ? Colors.black45
+                                            : Colors.white,
                                       ),
                                     ),
                                   ),
@@ -1398,7 +1484,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
           // 4. Jatuh Tempo
           const Text(
-            'Jatuh Tempo',
+            'Jatuh Tempo (Opsional)',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -1433,11 +1519,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       color: _jatuhTempo != null ? Colors.black87 : Colors.grey,
                     ),
                   ),
-                  const Icon(
-                    Icons.calendar_today,
-                    color: AppTheme.primary,
-                    size: 20,
-                  ),
+                  _jatuhTempo != null
+                      ? GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _jatuhTempo = null;
+                            });
+                          },
+                          child: const Icon(
+                            Icons.close,
+                            color: Color(0xFF9CA3AF),
+                            size: 20,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.calendar_today,
+                          color: AppTheme.primary,
+                          size: 20,
+                        ),
                 ],
               ),
             ),

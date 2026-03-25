@@ -29,7 +29,7 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
   Map<String, dynamic>? _selectedCategory;
   bool _isLoading = false;
   String? _warungId;
-  String _sumberKas = 'warung'; // 'warung' or 'operasional'
+  String _sumberKas = 'warung';
 
   void _closePage() {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -111,31 +111,58 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
         final double amount = double.parse(
           _jumlahController.text.replaceAll(RegExp(r'[^0-9]'), ''),
         );
+        final totalUangWarung = _cache.saldoAwal + _cache.uangKas;
+        if (amount > totalUangWarung) {
+          AppToast.showWarning(context, 'Saldo uang warung tidak cukup');
+          return;
+        }
+        final expenseTimestamp = _selectedDate.toUtc().toIso8601String();
+        final trimmedNote = _catatanController.text.trim();
+        final expenseNote = '[Sumber: WARUNG] $trimmedNote';
 
         // 1. Insert PENGELUARAN
-        await _supabase.from('PENGELUARAN').insert({
+        final insertedExpense = await _supabase.from('PENGELUARAN').insert({
           'warung_id': _warungId,
           'kategori_id': _selectedCategory!['id'],
-          'tanggal': _selectedDate.toIso8601String(),
+          'tanggal': expenseTimestamp,
           'amount': amount,
-          'keterangan':
-              '[Sumber: ${_sumberKas.toUpperCase()}] ${_catatanController.text.trim()}',
-        });
+          'keterangan': expenseNote,
+        }).select('id').single();
 
         // 2. Update WARUNG balances
         final Map<String, dynamic> updateData = {
           'updated_at': DateTime.now().toIso8601String(),
         };
-
-        if (_sumberKas == 'warung') {
-          _cache.uangKas -= amount;
-          updateData['uang_kas'] = _cache.uangKas;
+        double remaining = amount;
+        if (_cache.uangKas >= remaining) {
+          _cache.uangKas -= remaining;
+          remaining = 0;
         } else {
-          _cache.uangKasOperasional -= amount;
-          updateData['uang_kas_operasional'] = _cache.uangKasOperasional;
+          remaining -= _cache.uangKas;
+          _cache.uangKas = 0;
+          _cache.saldoAwal = (_cache.saldoAwal - remaining).clamp(
+            0,
+            double.infinity,
+          );
         }
 
+        updateData['saldo_awal'] = _cache.saldoAwal;
+        updateData['uang_kas'] = _cache.uangKas;
+
         await _supabase.from('WARUNG').update(updateData).eq('id', _warungId!);
+
+        final saldoSetelah = _cache.saldoAwal + _cache.uangKas;
+        await _supabase.from('BUKU_KAS').insert({
+          'warung_id': _warungId,
+          'tanggal': expenseTimestamp,
+          'tipe': 'keluar',
+          'sumber': 'pengeluaran',
+          'reference_id': insertedExpense['id'],
+          'reference_type': 'PENGELUARAN',
+          'amount': amount,
+          'saldo_setelah': saldoSetelah,
+          'keterangan': expenseNote,
+        });
 
         if (mounted) {
           AppToast.showSuccess(context, 'Pengeluaran Berhasil Dicatat');
@@ -376,6 +403,8 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
   }
 
   Widget _buildSecondaryCard() {
+    final totalUangWarung = _cache.saldoAwal + _cache.uangKas;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -396,24 +425,93 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
         children: [
           _buildFieldLabel('Diambil Dari'),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSourceChip(
-                  'warung',
-                  'UANG WARUNG',
-                  _cache.uangKas,
-                ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFD1EDD8),
+                width: 1.5,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSourceChip(
-                  'operasional',
-                  'KAS OPR',
-                  _cache.uangKasOperasional,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: AppTheme.primary,
+                    size: 24,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Uang Warung',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Total saldo warung yang tersedia saat ini',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Total Saat Ini',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF6B7280),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      NumberFormat.currency(
+                        locale: 'id_ID',
+                        symbol: 'Rp ',
+                        decimalDigits: 0,
+                      ).format(totalUangWarung),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
           _buildFieldLabel('Jumlah (Rp)'),
@@ -444,62 +542,12 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                 final val =
                     double.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
                 if (val <= 0) return 'Harus > 0';
-                final double balance = _sumberKas == 'warung'
-                    ? _cache.uangKas
-                    : _cache.uangKasOperasional;
-                if (val > balance) return 'Saldo tidak cukup';
+                if (val > totalUangWarung) return 'Saldo uang warung tidak cukup';
                 return null;
               },
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSourceChip(String value, String label, double bal) {
-    final bool isSel = _sumberKas == value;
-    return GestureDetector(
-      onTap: () => setState(() => _sumberKas = value),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: isSel
-              ? AppTheme.primary.withValues(alpha: 0.1)
-              : Colors.grey[50],
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSel ? AppTheme.primary : const Color(0xFFD1EDD8),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isSel ? AppTheme.primary : Colors.grey,
-                fontFamily: 'Poppins',
-              ),
-            ),
-            Text(
-              NumberFormat.currency(
-                locale: 'id_ID',
-                symbol: 'Rp',
-                decimalDigits: 0,
-              ).format(bal),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isSel ? AppTheme.primary : Colors.grey,
-                fontFamily: 'Poppins',
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
