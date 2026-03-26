@@ -21,6 +21,7 @@ import 'package:catatcuan_mobile/features/penjualan/receipt_page.dart';
 import 'package:catatcuan_mobile/features/hutang/hutang_list.dart';
 import 'package:catatcuan_mobile/features/hutang/insert_hutang.dart';
 import 'package:catatcuan_mobile/features/hutang/detail_hutang.dart';
+import 'package:catatcuan_mobile/features/laporan/presentation/pages/laporan_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/splash_page.dart';
@@ -159,8 +160,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/laporan',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Halaman Laporan'))),
+        builder: (context, state) => const LaporanPage(),
       ),
       GoRoute(
         path: '/stats',

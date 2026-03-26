@@ -86,7 +86,7 @@ class OnboardingCapital extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Modal Awal',
+                          'Modal Awal Warung',
                           style: GoogleFonts.poppins(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -95,7 +95,7 @@ class OnboardingCapital extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Pisahkan uang pribadi dan uang warung agar lebih akurat.',
+                          'Pisahkan uang pribadi dan uang warung agar catatan kas lebih akurat.',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: const Color(0xFF6B7280),
@@ -103,9 +103,9 @@ class OnboardingCapital extends StatelessWidget {
                         ),
                         const SizedBox(height: 32),
 
-                        // Uang Laci Field
+                        // Uang Laci Warung Field
                         Text(
-                          'Uang Laci (Cash in Drawer)',
+                          'Uang Laci Warung',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -140,9 +140,9 @@ class OnboardingCapital extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // Uang Pribadi Field
+                        // Modal Tambahan Pribadi Field
                         Text(
-                          'Uang Pribadi (Modal Tambahan)',
+                          'Modal Tambahan Pribadi',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,

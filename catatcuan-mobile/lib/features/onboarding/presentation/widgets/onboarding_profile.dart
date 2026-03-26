@@ -85,7 +85,7 @@ class OnboardingProfile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Lengkapi Profil Usaha',
+                          'Lengkapi Profil Warung',
                           style: GoogleFonts.poppins(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -94,7 +94,7 @@ class OnboardingProfile extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Isi nama dan alamat usahamu supaya laporan lebih rapi.',
+                          'Isi nama dan alamat warungmu supaya catatan lebih rapi.',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: const Color(0xFF6B7280),
@@ -136,9 +136,9 @@ class OnboardingProfile extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // Nama Usaha Field
+                        // Nama Warung Field
                         Text(
-                          'Nama Usaha',
+                          'Nama Warung',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -149,7 +149,7 @@ class OnboardingProfile extends StatelessWidget {
                         TextField(
                           controller: nameController,
                           decoration: InputDecoration(
-                            hintText: 'Contoh : Toko Berkah',
+                            hintText: 'Contoh : Warung Berkah',
                             filled: true,
                             fillColor: const Color(0xFFF8F9FA),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -169,9 +169,9 @@ class OnboardingProfile extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // Alamat Field
+                        // Alamat Warung Field
                         Text(
-                          'Alamat',
+                          'Alamat Warung',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,

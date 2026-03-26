@@ -1,6 +1,5 @@
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
-import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_business_type.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_capital.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_intro.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_profile.dart';
@@ -12,12 +11,10 @@ import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 /// Page indices:
 /// 0 = Welcome Intro
-/// 1 = Step Intro: Business Type (1/3)
-/// 2 = Business Type Form
-/// 3 = Step Intro: Profile (2/3)
-/// 4 = Profile Form
-/// 5 = Step Intro: Capital (3/3)
-/// 6 = Capital Form
+/// 1 = Step Intro: Profile (1/2)
+/// 2 = Profile Form
+/// 3 = Step Intro: Capital (2/2)
+/// 4 = Capital Form
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -34,13 +31,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   bool _isLoading = false;
 
   // Total pages in PageView
-  static const int _totalPages = 7;
+  static const int _totalPages = 5;
 
   // Pages that are form pages (show bottom bar)
   static const List<int> _formPages = [];
 
   // Form Data
-  String? _selectedBusinessType;
   final _ownerNameController = TextEditingController();
   final _businessNameController = TextEditingController();
   final _businessAddressController = TextEditingController();
@@ -308,38 +304,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 // Page 0: Welcome Intro
                 OnboardingIntro(onNext: _nextPage),
 
-                // Page 1: Step Intro - Business Type (1/3)
+                // Page 1: Step Intro - Profile (1/2)
                 OnboardingStepIntro(
                   imagePath: 'assets/onboarding/step.png',
-                  title: 'Apa Usaha Anda?',
-                  subtitle: 'Beritahu kami jenis jualan Anda, biar daftar barangnya lebih pas.',
-                  buttonText: 'Pilih Jenis Usaha',
+                  title: 'Lengkapi Profil Warung',
+                  subtitle: 'Isi nama dan alamat warungmu supaya catatan lebih rapi.',
+                  buttonText: 'Isi Profil Warung',
                   currentStep: 1,
-                  totalSteps: 3,
+                  totalSteps: 2,
                   onPressed: _nextPage,
                 ),
 
-                // Page 2: Business Type Form
-                OnboardingBusinessType(
-                  selectedType: _selectedBusinessType,
-                  onTypeSelected: (value) => setState(() => _selectedBusinessType = value),
-                  onNext: _nextPage,
-                  onBack: _previousPage,
-                ),
-
-                // Page 3: Step Intro - Profile (2/3)
-                OnboardingStepIntro(
-                  imagePath: 'assets/onboarding/step.png',
-                  title: 'Lengkapi Profil Usaha',
-                  subtitle: 'Isi nama dan alamat usahamu supaya laporan lebih rapi.',
-                  buttonText: 'Isi Profil',
-                  currentStep: 2,
-                  totalSteps: 3,
-                  onPressed: _nextPage,
-                ),
-
-                // Page 4: Profile Form
-                // Page 4: Profile Form
+                // Page 2: Profile Form
                 OnboardingProfile(
                   ownerNameController: _ownerNameController,
                   nameController: _businessNameController,
@@ -350,7 +326,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       return;
                     }
                     if (_businessNameController.text.isEmpty) {
-                      AppToast.showWarning(context, 'Nama usaha wajib diisi');
+                      AppToast.showWarning(context, 'Nama warung wajib diisi');
                       return;
                     }
                     _nextPage();
@@ -358,18 +334,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   onBack: _previousPage,
                 ),
 
-                // Page 5: Step Intro - Capital (3/3)
+                // Page 3: Step Intro - Capital (2/2)
                 OnboardingStepIntro(
                   imagePath: 'assets/onboarding/step.png',
-                  title: 'Modal Awal',
-                  subtitle: 'Masukkan saldo kas yang ada saat ini biar catatan keuanganmu langsung akurat.',
-                  buttonText: 'Isi Modal',
-                  currentStep: 3,
-                  totalSteps: 3,
+                  title: 'Modal Awal Warung',
+                  subtitle: 'Masukkan uang awal warung agar pencatatan kas langsung rapi sejak hari pertama.',
+                  buttonText: 'Isi Modal Awal',
+                  currentStep: 2,
+                  totalSteps: 2,
                   onPressed: _nextPage,
                 ),
 
-                // Page 6: Capital Form
+                // Page 4: Capital Form
                 OnboardingCapital(
                   cashController: _cashInDrawerController,
                   capitalController: _personalCapitalController,
@@ -416,17 +392,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ? null
                   : () {
                       // Validation based on current form page
-                      if (_currentPage == 2 && _selectedBusinessType == null) {
-                        AppToast.showWarning(context, 'Pilih jenis usaha dulu');
-                        return;
-                      }
-                      if (_currentPage == 4) {
+                      if (_currentPage == 2) {
                         if (_ownerNameController.text.isEmpty) {
                            AppToast.showWarning(context, 'Nama lengkap wajib diisi');
                           return;
                         }
                         if (_businessNameController.text.isEmpty) {
-                           AppToast.showWarning(context, 'Nama usaha wajib diisi');
+                           AppToast.showWarning(context, 'Nama warung wajib diisi');
                           return;
                         }
                       }
