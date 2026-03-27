@@ -295,7 +295,7 @@ class DataCacheService {
     try {
       final data = await _supabase
           .from('KATEGORI_PRODUK')
-          .select('id, nama_kategori, icon, sort_order')
+          .select('id, nama_kategori, icon, sort_order, master_kategori_id')
           .eq('warung_id', warungId!)
           .order('sort_order', ascending: true);
 
@@ -312,7 +312,7 @@ class DataCacheService {
     try {
       final data = await _supabase
           .from('KATEGORI_PENGELUARAN')
-          .select('id, nama_kategori, icon, tipe, sort_order')
+          .select('id, nama_kategori, icon, tipe, sort_order, master_kategori_id')
           .eq('warung_id', warungId!)
           .order('tipe', ascending: false) // Business first
           .order('sort_order', ascending: true);

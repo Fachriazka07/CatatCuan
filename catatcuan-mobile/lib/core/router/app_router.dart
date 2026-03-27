@@ -12,6 +12,20 @@ import 'package:catatcuan_mobile/features/pengeluaran/pengeluaran_list.dart';
 import 'package:catatcuan_mobile/features/pengeluaran/insert_pengeluaran.dart';
 import 'package:catatcuan_mobile/features/pengeluaran/detail_pengeluaran.dart';
 import 'package:catatcuan_mobile/features/settings/settings_page.dart';
+import 'package:catatcuan_mobile/features/settings/profile_page.dart';
+import 'package:catatcuan_mobile/features/settings/edit_profile_page.dart';
+import 'package:catatcuan_mobile/features/settings/warung_detail_page.dart';
+import 'package:catatcuan_mobile/features/settings/edit_warung_page.dart';
+import 'package:catatcuan_mobile/features/settings/change_password_page.dart';
+import 'package:catatcuan_mobile/features/settings/default_period_page.dart';
+import 'package:catatcuan_mobile/features/settings/product_categories_page.dart';
+import 'package:catatcuan_mobile/features/settings/expense_categories_page.dart';
+import 'package:catatcuan_mobile/features/settings/product_units_page.dart';
+import 'package:catatcuan_mobile/features/settings/opening_balance_page.dart';
+import 'package:catatcuan_mobile/features/settings/about_app_page.dart';
+import 'package:catatcuan_mobile/features/settings/privacy_policy_page.dart';
+import 'package:catatcuan_mobile/features/settings/notification_settings_page.dart';
+import 'package:catatcuan_mobile/core/services/settings_profile_service.dart';
 import 'package:catatcuan_mobile/features/pelanggan/customer_list.dart';
 import 'package:catatcuan_mobile/features/pelanggan/add_customer.dart';
 import 'package:catatcuan_mobile/features/pelanggan/customer_detail.dart';
@@ -22,6 +36,7 @@ import 'package:catatcuan_mobile/features/hutang/hutang_list.dart';
 import 'package:catatcuan_mobile/features/hutang/insert_hutang.dart';
 import 'package:catatcuan_mobile/features/hutang/detail_hutang.dart';
 import 'package:catatcuan_mobile/features/laporan/presentation/pages/laporan_page.dart';
+import 'package:catatcuan_mobile/features/stats/presentation/pages/stats_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/splash_page.dart';
@@ -164,12 +179,69 @@ class AppRouter {
       ),
       GoRoute(
         path: '/stats',
-        builder: (context, state) =>
-            const Scaffold(body: Center(child: Text('Halaman Stats'))),
+        builder: (context, state) => const StatsPage(),
       ),
       GoRoute(
         path: '/setting',
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/setting/profile',
+        builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: '/setting/profile/edit',
+        builder: (context, state) {
+          final data = state.extra as SettingsProfileData;
+          return EditProfilePage(initialData: data);
+        },
+      ),
+      GoRoute(
+        path: '/setting/warung',
+        builder: (context, state) => const WarungDetailPage(),
+      ),
+      GoRoute(
+        path: '/setting/warung/edit',
+        builder: (context, state) {
+          final data = state.extra as SettingsProfileData;
+          return EditWarungPage(initialData: data);
+        },
+      ),
+      GoRoute(
+        path: '/setting/password',
+        builder: (context, state) => const ChangePasswordPage(),
+      ),
+      GoRoute(
+        path: '/setting/default-period',
+        builder: (context, state) => const DefaultPeriodPage(),
+      ),
+      GoRoute(
+        path: '/setting/notifications',
+        builder: (context, state) => const NotificationSettingsPage(),
+      ),
+      GoRoute(
+        path: '/setting/product-categories',
+        builder: (context, state) => const ProductCategoriesPage(),
+      ),
+      GoRoute(
+        path: '/setting/expense-categories',
+        builder: (context, state) => const ExpenseCategoriesPage(),
+      ),
+      GoRoute(
+        path: '/setting/product-units',
+        builder: (context, state) => const ProductUnitsPage(),
+      ),
+      GoRoute(
+        path: '/setting/opening-balance',
+        builder: (context, state) => const OpeningBalancePage(),
+      ),
+      GoRoute(
+        path: '/setting/about',
+        builder: (context, state) => const AboutAppPage(),
+      ),
+      GoRoute(
+        path: '/setting/privacy',
+        builder: (context, state) => const PrivacyPolicyPage(),
       ),
     ],
   );

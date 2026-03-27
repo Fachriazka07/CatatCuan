@@ -17,6 +17,12 @@ class SessionService {
     return prefs.getString(_keyUserId);
   }
 
+  // Get current user phone
+  static Future<String?> getUserPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyPhone);
+  }
+
   // Check if logged in
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();

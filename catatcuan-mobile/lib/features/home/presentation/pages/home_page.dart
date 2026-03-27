@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,12 +20,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  static const SystemUiOverlayStyle _homeOverlayStyle =
-      SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF50C878),
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      );
+  static const String _customerServicePhone = '6287825782889';
+  static const int _lowStockThreshold = 3;
+  static const SystemUiOverlayStyle _homeOverlayStyle = SystemUiOverlayStyle(
+    statusBarColor: Color(0xFF50C878),
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+  );
 
   final supabase = Supabase.instance.client;
   final _cache = DataCacheService.instance;
@@ -41,6 +44,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   double pengeluaran = 0;
   double totalSaldoWarung = 0;
   List<Map<String, dynamic>> recentTransactions = [];
+  List<Map<String, dynamic>> stockAlerts = [];
 
   @override
   void initState() {
@@ -70,6 +74,188 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   void _applyHomeSystemUi() {
     SystemChrome.setSystemUIOverlayStyle(_homeOverlayStyle);
+  }
+
+  Future<void> _openCustomerServiceWhatsApp() async {
+    const message = 'Halo CatatCuan, saya butuh bantuan penggunaan aplikasi.';
+    final uri = Uri.parse(
+      'https://wa.me/$_customerServicePhone?text=${Uri.encodeComponent(message)}',
+    );
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!launched && mounted) {
+      AppToast.showError(
+        context,
+        'WhatsApp tidak bisa dibuka di perangkat ini',
+      );
+    }
+  }
+
+  void _updateStockAlerts() {
+    final alerts =
+        _cache.products
+            .where((product) {
+              final stock = (product['stok_saat_ini'] as num?)?.toInt() ?? 0;
+              return stock < _lowStockThreshold;
+            })
+            .map((product) {
+              final stock = (product['stok_saat_ini'] as num?)?.toInt() ?? 0;
+              final satuan = (product['satuan'] as String?) ?? 'PCS';
+              final productName =
+                  (product['nama_produk'] as String?) ?? 'Produk';
+
+              return {
+                'name': productName,
+                'stock': stock,
+                'unit': satuan,
+                'message': stock == 0
+                    ? 'Produk habis. Segera stok ulang.'
+                    : 'Stok tinggal $stock $satuan. Segera beli lagi.',
+              };
+            })
+            .toList()
+          ..sort((a, b) {
+            final stockA = a['stock'] as int? ?? 0;
+            final stockB = b['stock'] as int? ?? 0;
+            return stockA.compareTo(stockB);
+          });
+
+    stockAlerts = alerts;
+  }
+
+  void _showNotificationSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Notifikasi',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (stockAlerts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Text(
+                  'Belum ada notifikasi untuk stok produk.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: stockAlerts.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (_, index) {
+                    final alert = stockAlerts[index];
+                    final stock = alert['stock'] as int? ?? 0;
+                    final isOutOfStock = stock == 0;
+
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isOutOfStock
+                              ? const Color(0xFFFECACA)
+                              : const Color(0xFFFDE68A),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: isOutOfStock
+                                  ? const Color(0xFFFEE2E2)
+                                  : const Color(0xFFFFF7D6),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isOutOfStock
+                                  ? Icons.error_outline
+                                  : Icons.warning_amber_rounded,
+                              color: isOutOfStock
+                                  ? const Color(0xFFDC2626)
+                                  : const Color(0xFFD97706),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  alert['name'] as String? ?? 'Produk',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1F2937),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  alert['message'] as String? ?? '',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    height: 1.5,
+                                    color: const Color(0xFF4B5563),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<bool> _ensureActiveUserStatus({bool showMessage = true}) async {
@@ -137,9 +323,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       if (userId != null) {
         await _cache.refreshWarungData(userId);
       }
+      await _cache.refreshProducts();
 
       userName = _cache.userName;
       warungName = _cache.warungName;
+      _updateStockAlerts();
 
       // LOGIKA KEUANGAN: Uang Warung = Saldo Awal + Akumulasi Kas + Kas Operasional
       totalSaldoWarung =
@@ -308,9 +496,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 12),
                         _buildSalesBanner(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 0),
                         _buildMainMenu(),
                         const SizedBox(height: 32),
                         _buildRecentTransactions(),
@@ -363,46 +551,86 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         Row(
           children: [
-            const Icon(
-              Icons.notifications_outlined,
-              color: Colors.white,
-              size: 28,
-            ),
-            const SizedBox(width: 8),
-            Transform.translate(
-              offset: const Offset(16, 0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+            GestureDetector(
+              onTap: _showNotificationSheet,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.white,
+                    size: 28,
                   ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.support_agent_outlined,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Pusat\nBantuan',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                        height: 1.2,
+                  if (stockAlerts.isNotEmpty)
+                    Positioned(
+                      top: -6,
+                      right: -8,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDC2626),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            stockAlerts.length > 99
+                                ? '99+'
+                                : stockAlerts.length.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: _openCustomerServiceWhatsApp,
+              child: Transform.translate(
+                offset: const Offset(6, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.support_agent_outlined,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Pusat\nBantuan',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins',
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

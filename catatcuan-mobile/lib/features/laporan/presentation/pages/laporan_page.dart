@@ -1,5 +1,6 @@
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/laporan_service.dart';
+import 'package:catatcuan_mobile/core/services/settings_preferences_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -89,7 +90,17 @@ class _LaporanPageState extends State<LaporanPage> {
   @override
   void initState() {
     super.initState();
-    _setPeriod('bulan_ini', 'Bulan ini');
+    _loadDefaultPeriod();
+  }
+
+  Future<void> _loadDefaultPeriod() async {
+    final defaultPeriod = await SettingsPreferencesService.getDefaultPeriod();
+    if (!mounted) return;
+
+    _setPeriod(
+      SettingsPreferencesService.getLaporanKey(defaultPeriod),
+      SettingsPreferencesService.getLaporanLabel(defaultPeriod),
+    );
   }
 
   void _setPeriod(String periodKey, String label) {
@@ -111,6 +122,9 @@ class _LaporanPageState extends State<LaporanPage> {
         _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
       } else if (periodKey == 'bulan_ini') {
         _startDate = DateTime(now.year, now.month, 1);
+        _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      } else if (periodKey == 'triwulan_ini') {
+        _startDate = DateTime(now.year, now.month - 2, 1);
         _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
       }
     });
@@ -543,6 +557,7 @@ class _LaporanPageState extends State<LaporanPage> {
             if (value == 'Hari ini') key = 'hari_ini';
             if (value == 'Minggu ini') key = 'minggu_ini';
             if (value == 'Bulan ini') key = 'bulan_ini';
+            if (value == 'Triwulan ini') key = 'triwulan_ini';
             if (value == 'Custom') key = 'custom';
             _setPeriod(key, value);
           },
@@ -550,6 +565,7 @@ class _LaporanPageState extends State<LaporanPage> {
             const PopupMenuItem(value: 'Hari ini', child: Text('Hari ini')),
             const PopupMenuItem(value: 'Minggu ini', child: Text('Minggu ini')),
             const PopupMenuItem(value: 'Bulan ini', child: Text('Bulan ini')),
+            const PopupMenuItem(value: 'Triwulan ini', child: Text('Triwulan ini')),
             const PopupMenuItem(value: 'Custom', child: Text('Custom')),
           ],
           child: Row(
