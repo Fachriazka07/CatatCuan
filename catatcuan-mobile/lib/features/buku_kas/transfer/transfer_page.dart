@@ -78,17 +78,18 @@ class _TransferPageState extends State<TransferPage> {
         );
 
         // 1. Calculate saldo_setelah (Total warung doesn't change on transfer, but for bookkeeping we record it)
-        double currentTotal = _cache.saldoAwal + _cache.uangKas;
+        final double currentTotal = _cache.saldoAwal + _cache.uangKas;
 
         // 2. Insert BUKU_KAS
         await _supabase.from('BUKU_KAS').insert({
           'warung_id': warungId,
-          'tanggal': _selectedDate.toUtc().toIso8601String(),
+          'tanggal': _selectedDate.toIso8601String(),
           'tipe': 'transfer',
           'sumber': 'transfer',
           'amount': amount,
           'saldo_setelah': currentTotal,
-          'keterangan': '[TRANSFER: ${_sourceKas.toUpperCase()} ➔ ${_targetKas.toUpperCase()}] ${_catatanController.text.trim()}',
+          'keterangan':
+              '[TRANSFER: ${_sourceKas.toUpperCase()} ➔ ${_targetKas.toUpperCase()}] ${_catatanController.text.trim()}',
         });
 
         // 3. Update WARUNG balance
@@ -103,7 +104,7 @@ class _TransferPageState extends State<TransferPage> {
           _cache.uangKas -= amount;
           _cache.saldoAwal += amount;
         }
-        
+
         updateData['saldo_awal'] = _cache.saldoAwal;
         updateData['uang_kas'] = _cache.uangKas;
 
@@ -239,7 +240,11 @@ class _TransferPageState extends State<TransferPage> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: 20),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Color(0xFF6B7280),
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     DateFormat('dd MMMM yyyy').format(_selectedDate),
@@ -294,10 +299,10 @@ class _TransferPageState extends State<TransferPage> {
                     _buildFieldLabel('Dari'),
                     const SizedBox(height: 8),
                     _buildSourceChip('dari', _sourceKas, (v) {
-                       setState(() {
-                         _sourceKas = v;
-                         _targetKas = v == 'laci' ? 'kas' : 'laci';
-                       });
+                      setState(() {
+                        _sourceKas = v;
+                        _targetKas = v == 'laci' ? 'kas' : 'laci';
+                      });
                     }),
                   ],
                 ),
@@ -313,10 +318,10 @@ class _TransferPageState extends State<TransferPage> {
                     _buildFieldLabel('Ke'),
                     const SizedBox(height: 8),
                     _buildSourceChip('ke', _targetKas, (v) {
-                       setState(() {
-                         _targetKas = v;
-                         _sourceKas = v == 'laci' ? 'kas' : 'laci';
-                       });
+                      setState(() {
+                        _targetKas = v;
+                        _sourceKas = v == 'laci' ? 'kas' : 'laci';
+                      });
                     }),
                   ],
                 ),
@@ -333,12 +338,15 @@ class _TransferPageState extends State<TransferPage> {
             isAmount: true,
             validator: (v) {
               if (v == null || v.isEmpty) return 'Wajib diisi';
-              final val = double.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              final val =
+                  double.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
               if (val <= 0) return 'Harus > 0';
-              
-              final double balance = _sourceKas == 'laci' ? _cache.saldoAwal : _cache.uangKas;
+
+              final double balance = _sourceKas == 'laci'
+                  ? _cache.saldoAwal
+                  : _cache.uangKas;
               if (val > balance) return 'Saldo tidak cukup';
-              
+
               return null;
             },
           ),
@@ -347,7 +355,11 @@ class _TransferPageState extends State<TransferPage> {
     );
   }
 
-  Widget _buildSourceChip(String type, String currentVal, Function(String) onSelected) {
+  Widget _buildSourceChip(
+    String type,
+    String currentVal,
+    Function(String) onSelected,
+  ) {
     return Column(
       children: [
         _buildChipItem('laci', 'UANG LACI', currentVal == 'laci', onSelected),
@@ -357,15 +369,22 @@ class _TransferPageState extends State<TransferPage> {
     );
   }
 
-  Widget _buildChipItem(String value, String label, bool isSelected, Function(String) onSelected) {
-    double bal = value == 'laci' ? _cache.saldoAwal : _cache.uangKas;
+  Widget _buildChipItem(
+    String value,
+    String label,
+    bool isSelected,
+    Function(String) onSelected,
+  ) {
+    final double bal = value == 'laci' ? _cache.saldoAwal : _cache.uangKas;
     return GestureDetector(
       onTap: () => onSelected(value),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : Colors.grey[50],
+          color: isSelected
+              ? AppTheme.primary.withValues(alpha: 0.1)
+              : Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.primary : const Color(0xFFD1EDD8),
@@ -384,7 +403,11 @@ class _TransferPageState extends State<TransferPage> {
               ),
             ),
             Text(
-              NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(bal),
+              NumberFormat.currency(
+                locale: 'id_ID',
+                symbol: 'Rp',
+                decimalDigits: 0,
+              ).format(bal),
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -464,7 +487,11 @@ class _TransferPageState extends State<TransferPage> {
         hintText: hintText,
         prefixText: isAmount ? 'Rp ' : null,
         prefixStyle: isAmount
-            ? const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)
+            ? const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              )
             : null,
         hintStyle: TextStyle(
           color: const Color(0xFF6B7280).withValues(alpha: 0.5),
@@ -474,7 +501,10 @@ class _TransferPageState extends State<TransferPage> {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),

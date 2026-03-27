@@ -5,6 +5,7 @@ import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
@@ -17,6 +18,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  static const SystemUiOverlayStyle _homeOverlayStyle =
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF50C878),
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      );
+
   final supabase = Supabase.instance.client;
   final _cache = DataCacheService.instance;
   static final RegExp _sourceTagPattern = RegExp(
@@ -38,6 +46,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _applyHomeSystemUi();
     _statusCheckTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       _ensureActiveUserStatus(showMessage: false);
     });
@@ -54,8 +63,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _applyHomeSystemUi();
       _ensureActiveUserStatus();
     }
+  }
+
+  void _applyHomeSystemUi() {
+    SystemChrome.setSystemUIOverlayStyle(_homeOverlayStyle);
   }
 
   Future<bool> _ensureActiveUserStatus({bool showMessage = true}) async {
@@ -244,67 +258,73 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _fetchData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      height: 240,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFF50C878), Color(0xFF27623B)],
-                          stops: [0.0, 0.66],
-                        ),
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(50),
-                          bottomRight: Radius.circular(50),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 16),
-                          _buildHeader(),
-                          const SizedBox(height: 24),
-                          _buildStatsCard(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _homeOverlayStyle,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: SafeArea(
+          top: false,
+          child: RefreshIndicator(
+            onRefresh: _fetchData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
                     children: [
-                      const SizedBox(height: 24),
-                      _buildSalesBanner(),
-                      const SizedBox(height: 24),
-                      _buildMainMenu(),
-                      const SizedBox(height: 32),
-                      _buildRecentTransactions(),
-                      const SizedBox(height: 100),
+                      Container(
+                        height: 272,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFF50C878), Color(0xFF27623B)],
+                            stops: [0.0, 0.66],
+                          ),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(50),
+                            bottomRight: Radius.circular(50),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
+                            SizedBox(height: statusBarHeight + 12),
+                            _buildHeader(),
+                            const SizedBox(height: 28),
+                            _buildStatsCard(),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24),
+                        _buildSalesBanner(),
+                        const SizedBox(height: 24),
+                        _buildMainMenu(),
+                        const SizedBox(height: 32),
+                        _buildRecentTransactions(),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 

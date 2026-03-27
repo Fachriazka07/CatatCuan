@@ -297,6 +297,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white background based on typical app use
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             _buildHeader(),

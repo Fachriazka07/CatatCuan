@@ -4,6 +4,7 @@ import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 enum ReportType { finance, sales, expense, cashBook, debt }
 
@@ -83,6 +84,7 @@ class _LaporanPageState extends State<LaporanPage> {
   bool _isLoading = true;
   Map<String, dynamic> _reportData = {};
   ReportType _selectedReportType = ReportType.finance;
+  String? _exportingFormat;
 
   @override
   void initState() {
@@ -371,11 +373,63 @@ class _LaporanPageState extends State<LaporanPage> {
     }
   }
 
-  void _showExportMessage(String format) {
+  Future<void> _exportReport(String format) async {
+    if (_cache.warungId == null || _exportingFormat != null) return;
+
+    setState(() => _exportingFormat = format);
+
+    try {
+      final exportResult = switch (format) {
+        'excel' => await _laporanService.exportReportAsExcel(
+          reportTypeKey: _selectedReportType.name,
+          reportTitle: _selectedReportType.title,
+          warungName: _cache.warungName ?? 'Warung Saya',
+          startDate: _startDate,
+          endDate: _endDate,
+          reportData: _reportData,
+        ),
+        _ => await _laporanService.exportReportAsPdf(
+          reportTypeKey: _selectedReportType.name,
+          reportTitle: _selectedReportType.title,
+          warungName: _cache.warungName ?? 'Warung Saya',
+          startDate: _startDate,
+          endDate: _endDate,
+          reportData: _reportData,
+        ),
+      };
+
+      if (!mounted) return;
+
+      await Share.shareXFiles(
+        [XFile(exportResult.file.path)],
+        text:
+            '${_selectedReportType.title} ${_selectedPeriodLabel.toLowerCase()} dari ${_cache.warungName ?? 'warung'}',
+        subject: exportResult.filename,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          content: Text(
+            'Gagal export ${format.toUpperCase()}: $e',
+            style: const TextStyle(fontFamily: 'Poppins', color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    } finally {
+      if (mounted) {
+        setState(() => _exportingFormat = null);
+      }
+    }
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Export $format untuk ${_selectedReportType.title} sedang disiapkan.',
+          'File ${format.toUpperCase()} siap dibagikan.',
           style: const TextStyle(fontFamily: 'Poppins'),
         ),
       ),
@@ -1179,19 +1233,23 @@ class _LaporanPageState extends State<LaporanPage> {
           children: [
             Expanded(
               child: _buildExportButton(
-                label: 'Excel',
+                label: _exportingFormat == 'excel' ? 'Mengekspor...' : 'Excel',
                 icon: Icons.table_chart_rounded,
                 color: AppTheme.primary,
-                onTap: () => _showExportMessage('Excel'),
+                isLoading: _exportingFormat == 'excel',
+                onTap: _exportingFormat == null
+                    ? () => _exportReport('excel')
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildExportButton(
-                label: 'PDF',
+                label: _exportingFormat == 'pdf' ? 'Mengekspor...' : 'PDF',
                 icon: Icons.picture_as_pdf_rounded,
                 color: const Color(0xFFF8BD00),
-                onTap: () => _showExportMessage('PDF'),
+                isLoading: _exportingFormat == 'pdf',
+                onTap: _exportingFormat == null ? () => _exportReport('pdf') : null,
               ),
             ),
           ],
@@ -1204,13 +1262,23 @@ class _LaporanPageState extends State<LaporanPage> {
     required String label,
     required IconData icon,
     required Color color,
-    required VoidCallback onTap,
+    required bool isLoading,
+    required VoidCallback? onTap,
   }) {
     return SizedBox(
       height: 50,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 20, color: color),
+        icon: isLoading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: color,
+                ),
+              )
+            : Icon(icon, size: 20, color: color),
         label: Text(
           'Export $label',
           style: TextStyle(
@@ -1222,7 +1290,10 @@ class _LaporanPageState extends State<LaporanPage> {
         ),
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
-          side: BorderSide(color: color, width: 1.5),
+          side: BorderSide(
+            color: onTap == null ? color.withValues(alpha: 0.5) : color,
+            width: 1.5,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
         ),

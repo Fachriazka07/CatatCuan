@@ -85,6 +85,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white background
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             _buildHeader(),

@@ -72,18 +72,19 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
         );
 
         // 1. Calculate saldo_setelah
-        double currentTotal = _cache.saldoAwal + _cache.uangKas;
-        double saldoSetelah = currentTotal - amount;
+        final double currentTotal = _cache.saldoAwal + _cache.uangKas;
+        final double saldoSetelah = currentTotal - amount;
 
         // 2. Insert BUKU_KAS
         await _supabase.from('BUKU_KAS').insert({
           'warung_id': warungId,
-          'tanggal': _selectedDate.toUtc().toIso8601String(),
+          'tanggal': _selectedDate.toIso8601String(),
           'tipe': 'keluar',
           'sumber': 'manual_keluar', // Use specific enum value
           'amount': amount,
           'saldo_setelah': saldoSetelah,
-          'keterangan': '[UANG KELUAR - ${_sourceKas.toUpperCase()}] ${_catatanController.text.trim()}',
+          'keterangan':
+              '[UANG KELUAR - ${_sourceKas.toUpperCase()}] ${_catatanController.text.trim()}',
         });
 
         // 3. Update WARUNG balance
@@ -231,7 +232,11 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: 20),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Color(0xFF6B7280),
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     DateFormat('dd MMMM yyyy').format(_selectedDate),
@@ -300,12 +305,15 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
             isAmount: true,
             validator: (v) {
               if (v == null || v.isEmpty) return 'Wajib diisi';
-              final val = double.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+              final val =
+                  double.tryParse(v.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
               if (val <= 0) return 'Harus > 0';
-              
-              final double balance = _sourceKas == 'laci' ? _cache.saldoAwal : _cache.uangKas;
+
+              final double balance = _sourceKas == 'laci'
+                  ? _cache.saldoAwal
+                  : _cache.uangKas;
               if (val > balance) return 'Saldo tidak cukup';
-              
+
               return null;
             },
           ),
@@ -321,7 +329,9 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
       child: Container(
         height: 60,
         decoration: BoxDecoration(
-          color: isSel ? AppTheme.primary.withValues(alpha: 0.1) : Colors.grey[50],
+          color: isSel
+              ? AppTheme.primary.withValues(alpha: 0.1)
+              : Colors.grey[50],
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSel ? AppTheme.primary : const Color(0xFFD1EDD8),
@@ -341,7 +351,11 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
               ),
             ),
             Text(
-              NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(bal),
+              NumberFormat.currency(
+                locale: 'id_ID',
+                symbol: 'Rp',
+                decimalDigits: 0,
+              ).format(bal),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -414,14 +428,20 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
       style: TextStyle(
         fontSize: isAmount ? 24 : 18,
         fontWeight: isAmount ? FontWeight.bold : FontWeight.w600,
-        color: isAmount ? const Color(0xFFDC2626) : const Color(0xFF6B7280).withValues(alpha: 0.8),
+        color: isAmount
+            ? const Color(0xFFDC2626)
+            : const Color(0xFF6B7280).withValues(alpha: 0.8),
         fontFamily: 'Poppins',
       ),
       decoration: InputDecoration(
         hintText: hintText,
         prefixText: isAmount ? 'Rp ' : null,
         prefixStyle: isAmount
-            ? const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))
+            ? const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFDC2626),
+              )
             : null,
         hintStyle: TextStyle(
           color: const Color(0xFF6B7280).withValues(alpha: 0.5),
@@ -431,7 +451,10 @@ class _UangKeluarPageState extends State<UangKeluarPage> {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),

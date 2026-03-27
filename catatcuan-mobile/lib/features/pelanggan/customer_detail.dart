@@ -133,6 +133,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             _buildHeader(),
