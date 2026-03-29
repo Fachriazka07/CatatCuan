@@ -1,3 +1,4 @@
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:catatcuan_mobile/core/services/settings_preferences_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
@@ -46,6 +47,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   }) async {
     setState(() => updateState(value));
     await SettingsPreferencesService.setNotificationSetting(key, value);
+    await PushNotificationService.instance.syncPreferencesForCurrentUser();
   }
 
   void _showSavedInfo() {
@@ -90,7 +92,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                   const SizedBox(height: 16),
                   _buildToggleCard(
                     title: 'Pengingat Hutang Jatuh Tempo',
-                    subtitle: 'Ingatkan jika ada hutang atau piutang yang mendekati jatuh tempo.',
+                    subtitle: 'Ingatkan jika ada piutang kasbon yang mendekati jatuh tempo.',
                     value: _dueDateReminder,
                     onChanged: (value) async {
                       await _updateSetting(

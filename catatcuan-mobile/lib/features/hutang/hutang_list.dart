@@ -35,6 +35,21 @@ class _HutangListPageState extends State<HutangListPage> {
     return DateTime.tryParse(sanitized)?.toLocal();
   }
 
+  DateTime? _tryParseOptionalDate(dynamic value) {
+    final raw = (value ?? '').toString().trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+
+    final sanitized = raw
+        .replaceAll('(', '')
+        .replaceAll(')', '')
+        .replaceAll('"', '')
+        .trim();
+
+    return DateTime.tryParse(sanitized)?.toLocal();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -545,6 +560,7 @@ class _HutangListPageState extends State<HutangListPage> {
     final jenis = item['jenis'] as String? ?? 'HUTANG';
     final isPiutang = jenis.toUpperCase() == 'PIUTANG';
     final isLunas = item['status'] == 'lunas';
+    final jatuhTempo = _tryParseOptionalDate(item['tanggal_jatuh_tempo']);
     final createdAtDate = _tryParseSafeDate(item['created_at']);
     final createdAt = createdAtDate != null
         ? DateFormat('dd MMM yyyy').format(createdAtDate)
@@ -610,6 +626,20 @@ class _HutangListPageState extends State<HutangListPage> {
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF6B7280),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
+                  if (jatuhTempo != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Jatuh tempo: ${DateFormat('dd MMM yyyy', 'id_ID').format(jatuhTempo)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFFF59E0B),
+                        fontWeight: FontWeight.w600,
                         fontFamily: 'Poppins',
                       ),
                     ),

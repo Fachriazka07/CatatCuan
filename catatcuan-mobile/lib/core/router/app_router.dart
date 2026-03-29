@@ -42,6 +42,9 @@ import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/splash_page.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/welcome_page.dart';
 import 'package:catatcuan_mobile/features/auth/presentation/pages/login_page.dart';
+import 'package:catatcuan_mobile/features/auth/presentation/pages/forgot_password_page.dart';
+import 'package:catatcuan_mobile/features/auth/presentation/pages/forgot_password_otp_page.dart';
+import 'package:catatcuan_mobile/features/auth/presentation/pages/forgot_password_reset_page.dart';
 import 'package:catatcuan_mobile/features/auth/presentation/pages/register_page.dart';
 
 class AppRouter {
@@ -55,6 +58,43 @@ class AppRouter {
         builder: (context, state) => const WelcomePage(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/forgot-password/otp',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final phoneNumber = extra?['phoneNumber'] as String?;
+
+          if (phoneNumber == null || phoneNumber.isEmpty) {
+            return const ForgotPasswordPage();
+          }
+
+          return ForgotPasswordOtpPage(phoneNumber: phoneNumber);
+        },
+      ),
+      GoRoute(
+        path: '/forgot-password/reset',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final phoneNumber = extra?['phoneNumber'] as String?;
+          final otpCode = extra?['otpCode'] as String?;
+
+          if (phoneNumber == null ||
+              phoneNumber.isEmpty ||
+              otpCode == null ||
+              otpCode.length != 6) {
+            return const ForgotPasswordPage();
+          }
+
+          return ForgotPasswordResetPage(
+            phoneNumber: phoneNumber,
+            otpCode: otpCode,
+          );
+        },
+      ),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterPage(),

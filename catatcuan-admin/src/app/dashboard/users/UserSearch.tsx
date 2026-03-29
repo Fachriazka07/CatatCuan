@@ -64,16 +64,6 @@ interface UserSearchProps {
   warungs: Warung[];
 }
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    }
-  }
-};
-
 const item = {
   hidden: { opacity: 0, x: -10 },
   show: { opacity: 1, x: 0 }
@@ -251,18 +241,14 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                           </TableCell>
                         </motion.tr>
                       ) : (
-                        <motion.div
-                          key="user-list"
-                          variants={container}
-                          initial="hidden"
-                          animate="show"
-                          className="contents"
-                          layout
-                        >
+                        <>
                           {filteredUsers.map((user) => (
                             <motion.tr
                               key={user.id}
                               variants={item}
+                              initial="hidden"
+                              animate="show"
+                              exit="hidden"
                               className="group cursor-pointer hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
                               onClick={() => router.push(`/dashboard/users/${user.id}`)}
                               onKeyDown={(event) => {
@@ -305,7 +291,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                               </TableCell>
                             </motion.tr>
                           ))}
-                        </motion.div>
+                        </>
                       )}
                     </AnimatePresence>
                   </TableBody>
@@ -345,18 +331,14 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                           </TableCell>
                         </motion.tr>
                       ) : (
-                        <motion.div
-                          key="warung-list"
-                          variants={container}
-                          initial="hidden"
-                          animate="show"
-                          className="contents"
-                          layout
-                        >
+                        <>
                           {filteredWarungs.map((warung) => (
                             <motion.tr
                               key={warung.id}
                               variants={item}
+                              initial="hidden"
+                              animate="show"
+                              exit="hidden"
                               className="group cursor-pointer hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
                               onClick={() => router.push(`/dashboard/warungs/${warung.id}`)}
                               onKeyDown={(event) => {
@@ -396,7 +378,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                               </TableCell>
                             </motion.tr>
                           ))}
-                        </motion.div>
+                        </>
                       )}
                     </AnimatePresence>
                   </TableBody>

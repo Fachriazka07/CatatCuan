@@ -36,8 +36,6 @@ import {
   Pencil, 
   Trash2, 
   RefreshCw, 
-  Layers, 
-  CheckCircle2,
   AlertCircle,
   ImageIcon,
   Tag
@@ -57,6 +55,14 @@ interface MasterKategoriPengeluaran {
   created_at: string;
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Terjadi kesalahan yang tidak diketahui';
+}
+
 const AVAILABLE_ICONS = [
   'Kesehatan.png',
   'LainnyaPribadi.png',
@@ -65,16 +71,6 @@ const AVAILABLE_ICONS = [
   'Pendidikan.png',
   'Sedekah.png',
 ];
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    }
-  }
-};
 
 const item = {
   hidden: { opacity: 0, y: 10 },
@@ -173,8 +169,8 @@ export default function MasterPengeluaranPage() {
 
       setDialogOpen(false);
       fetchKategoris();
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('Terjadi kesalahan: ' + getErrorMessage(error));
     }
   }
 
@@ -267,7 +263,10 @@ export default function MasterPengeluaranPage() {
                       className="flex h-12 w-full rounded-2xl border border-border/40 bg-background/50 px-4 py-2 text-sm focus:ring-2 focus:ring-brand/20 focus:outline-none appearance-none cursor-pointer font-medium"
                       value={formData.tipe}
                       onChange={(e) =>
-                        setFormData({ ...formData, tipe: e.target.value as any })
+                        setFormData({
+                          ...formData,
+                          tipe: e.target.value as 'business' | 'personal',
+                        })
                       }
                     >
                       <option value="business">Bisnis (Warung)</option>
@@ -357,18 +356,15 @@ export default function MasterPengeluaranPage() {
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence mode="popLayout">
-                    <motion.div 
-                      variants={container}
-                      initial="hidden"
-                      animate="show"
-                      className="contents"
-                    >
-                      {kategoris.map((kategori) => (
-                        <motion.tr 
-                          key={kategori.id}
-                          variants={item}
-                          className="group hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
-                        >
+                    {kategoris.map((kategori) => (
+                      <motion.tr 
+                        key={kategori.id}
+                        variants={item}
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        className="group hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
+                      >
                           <TableCell className="py-4 pl-6 text-center">
                             <div className="h-10 w-10 mx-auto rounded-xl bg-background shadow-sm border border-border/40 flex items-center justify-center font-bold text-[10px] text-muted-foreground group-hover:scale-110 transition-transform duration-300 overflow-hidden bg-muted/10">
                               {kategori.icon ? (
@@ -427,9 +423,8 @@ export default function MasterPengeluaranPage() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TableCell>
-                        </motion.tr>
-                      ))}
-                    </motion.div>
+                      </motion.tr>
+                    ))}
                   </AnimatePresence>
                 </TableBody>
               </Table>

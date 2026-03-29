@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1076193861221",
+    "project_id": "catatcuan-47fcc",
+    "storage_bucket": "catatcuan-47fcc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1076193861221:android:0806f2bea98018fbe3708c",
+        "android_client_info": {
+          "package_name": "com.catatcuan.catatcuan_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCk7j9wC2qzizjiok6ho0pn2u6YTRTawsc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,16 +1,56 @@
-# catatcuan_mobile
+# CatatCuan Mobile
 
-A new Flutter project.
+Project Flutter ini sekarang sudah disiapkan untuk integrasi push notification Firebase Cloud Messaging ke backend CatatCuan.
 
-## Getting Started
+## Env yang perlu ada di `.env`
 
-This project is a starting point for a Flutter application.
+Tambahkan selain Supabase:
 
-A few resources to get you started if this is your first Flutter project:
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+MOBILE_BACKEND_BASE_URL=
+MOBILE_BACKEND_API_KEY=
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Contoh `MOBILE_BACKEND_BASE_URL` saat local dev:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```env
+MOBILE_BACKEND_BASE_URL=http://10.0.2.2:3000
+```
+
+Catatan:
+
+- `10.0.2.2` dipakai jika Flutter jalan di Android emulator dan backend Next.js jalan di laptop yang sama
+- kalau pakai HP fisik, ganti dengan IP lokal laptop, misalnya `http://192.168.1.10:3000`
+
+## Setup Firebase Android
+
+Supaya FCM bisa jalan di Android:
+
+1. Tambahkan app Android `com.catatcuan.catatcuan_mobile` di Firebase Console
+2. Download `google-services.json`
+3. Simpan file itu ke:
+
+```txt
+android/app/google-services.json
+```
+
+4. Jalankan:
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Yang sudah terhubung
+
+- app startup akan inisialisasi Firebase bila konfigurasi tersedia
+- setelah login atau saat sesi lama dipulihkan, app akan ambil FCM token lalu kirim ke backend
+- perubahan toggle di halaman notifikasi akan disinkronkan ke backend
+
+## Yang belum selesai
+
+- tampilan UI khusus untuk menerima dan membuka push notification
+- flow lupa password berbasis OTP SMS
+- konfigurasi iOS

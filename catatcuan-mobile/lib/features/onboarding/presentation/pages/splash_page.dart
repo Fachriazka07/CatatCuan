@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -50,6 +51,7 @@ class _SplashPageState extends State<SplashPage> {
       final userStatus = user?['status'] as String? ?? 'inactive';
 
       if (user == null || userStatus != 'active') {
+        await PushNotificationService.instance.unregisterCurrentDevice();
         await SessionService.logout();
         if (mounted) setState(() => _progress = 1.0);
         await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -64,6 +66,8 @@ class _SplashPageState extends State<SplashPage> {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
+
+      await PushNotificationService.instance.syncForUser(userId);
 
       if (mounted) {
         setState(() {

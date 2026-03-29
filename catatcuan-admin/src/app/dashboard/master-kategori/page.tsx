@@ -37,13 +37,11 @@ import {
   Trash2, 
   RefreshCw, 
   Layers, 
-  CheckCircle2,
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAdminActivity } from '@/lib/admin-activity';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 interface Kategori {
   id: string;
@@ -54,15 +52,13 @@ interface Kategori {
   created_at: string;
 }
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    }
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
   }
-};
+
+  return 'Terjadi kesalahan yang tidak diketahui';
+}
 
 const item = {
   hidden: { opacity: 0, y: 10 },
@@ -156,8 +152,8 @@ export default function MasterKategoriPage() {
 
       setDialogOpen(false);
       fetchKategoris();
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('Terjadi kesalahan: ' + getErrorMessage(error));
     }
   }
 
@@ -329,74 +325,70 @@ export default function MasterKategoriPage() {
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence mode="popLayout">
-                    <motion.div 
-                      variants={container}
-                      initial="hidden"
-                      animate="show"
-                      className="contents"
-                    >
-                      {kategoris.map((kategori) => (
-                        <motion.tr 
-                          key={kategori.id}
-                          variants={item}
-                          className="group hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
-                        >
-                          <TableCell className="py-4 pl-6">
-                            <div className="h-10 w-10 rounded-xl bg-background shadow-sm border border-border/40 flex items-center justify-center font-bold text-[10px] text-muted-foreground group-hover:scale-110 transition-transform duration-300 overflow-hidden bg-muted/10">
-                              {kategori.icon ? (
-                                <span className="text-[8px] truncate px-1 text-center leading-tight opacity-60">{kategori.icon.split('.')[0]}</span>
-                              ) : 'CC'}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold tracking-tight">{kategori.nama_kategori}</span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => openEditDialog(kategori)}
-                                className="h-6 w-6 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-brand/10 hover:text-brand"
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-4 text-center">
-                            <button 
-                              onClick={() => toggleActive(kategori)}
-                              className="cursor-pointer active:scale-95 transition-transform"
+                    {kategoris.map((kategori) => (
+                      <motion.tr 
+                        key={kategori.id}
+                        variants={item}
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        className="group hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
+                      >
+                        <TableCell className="py-4 pl-6">
+                          <div className="h-10 w-10 rounded-xl bg-background shadow-sm border border-border/40 flex items-center justify-center font-bold text-[10px] text-muted-foreground group-hover:scale-110 transition-transform duration-300 overflow-hidden bg-muted/10">
+                            {kategori.icon ? (
+                              <span className="text-[8px] truncate px-1 text-center leading-tight opacity-60">{kategori.icon.split('.')[0]}</span>
+                            ) : 'CC'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold tracking-tight">{kategori.nama_kategori}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => openEditDialog(kategori)}
+                              className="h-6 w-6 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-brand/10 hover:text-brand"
                             >
-                              {kategori.is_active ? (
-                                <Badge className="bg-brand/10 text-brand border-brand/20 hover:bg-brand/20 transition-colors">
-                                  Aktif
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="opacity-60">
-                                  Nonaktif
-                                </Badge>
-                              )}
-                            </button>
-                          </TableCell>
-                          <TableCell className="py-4 text-center">
-                            <span className="font-mono text-xs font-bold text-muted-foreground/40">#{kategori.sort_order}</span>
-                          </TableCell>
-                          <TableCell className="py-4 pr-6 text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                if (confirm(`Yakin ingin menonaktifkan "${kategori.nama_kategori}"?`)) {
-                                  handleDelete(kategori.id);
-                                }
-                              }}
-                              className="h-8 w-8 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
+                              <Pencil className="h-3 w-3" />
                             </Button>
-                          </TableCell>
-                        </motion.tr>
-                      ))}
-                    </motion.div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 text-center">
+                          <button 
+                            onClick={() => toggleActive(kategori)}
+                            className="cursor-pointer active:scale-95 transition-transform"
+                          >
+                            {kategori.is_active ? (
+                              <Badge className="bg-brand/10 text-brand border-brand/20 hover:bg-brand/20 transition-colors">
+                                Aktif
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="opacity-60">
+                                Nonaktif
+                              </Badge>
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell className="py-4 text-center">
+                          <span className="font-mono text-xs font-bold text-muted-foreground/40">#{kategori.sort_order}</span>
+                        </TableCell>
+                        <TableCell className="py-4 pr-6 text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (confirm(`Yakin ingin menonaktifkan "${kategori.nama_kategori}"?`)) {
+                                handleDelete(kategori.id);
+                              }
+                            }}
+                            className="h-8 w-8 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
                   </AnimatePresence>
                 </TableBody>
               </Table>

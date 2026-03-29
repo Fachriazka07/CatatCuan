@@ -36,15 +36,12 @@ import {
   Pencil, 
   Trash2, 
   RefreshCw, 
-  Layers, 
-  CheckCircle2,
   AlertCircle,
   Hash
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAdminActivity } from '@/lib/admin-activity';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 interface Satuan {
   id: string;
@@ -54,15 +51,13 @@ interface Satuan {
   created_at: string;
 }
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    }
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
   }
-};
+
+  return 'Terjadi kesalahan yang tidak diketahui';
+}
 
 const item = {
   hidden: { opacity: 0, y: 10 },
@@ -152,8 +147,8 @@ export default function MasterSatuanPage() {
 
       setDialogOpen(false);
       fetchSatuans();
-    } catch (error: any) {
-      toast.error('Terjadi kesalahan: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('Terjadi kesalahan: ' + getErrorMessage(error));
     }
   }
 
@@ -307,18 +302,15 @@ export default function MasterSatuanPage() {
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence mode="popLayout">
-                    <motion.div 
-                      variants={container}
-                      initial="hidden"
-                      animate="show"
-                      className="contents"
-                    >
-                      {satuans.map((satuan) => (
-                        <motion.tr 
-                          key={satuan.id}
-                          variants={item}
-                          className="group hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
-                        >
+                    {satuans.map((satuan) => (
+                      <motion.tr 
+                        key={satuan.id}
+                        variants={item}
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        className="group hover:bg-muted/20 border-b border-border/20 last:border-0 transition-colors"
+                      >
                           <TableCell className="py-4 pl-6">
                             <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-lg bg-background border border-border/40 flex items-center justify-center font-black text-[10px] text-muted-foreground/40 uppercase font-mono">
@@ -370,9 +362,8 @@ export default function MasterSatuanPage() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TableCell>
-                        </motion.tr>
-                      ))}
-                    </motion.div>
+                      </motion.tr>
+                    ))}
                   </AnimatePresence>
                 </TableBody>
               </Table>

@@ -68,10 +68,71 @@ export const users = pgTable('USERS', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const mobileDeviceTokens = pgTable('MOBILE_DEVICE_TOKENS', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  deviceToken: text('device_token').notNull().unique(),
+  platform: text('platform').notNull(),
+  deviceLabel: text('device_label'),
+  isActive: boolean('is_active').default(true),
+  lastSeenAt: timestamp('last_seen_at').defaultNow(),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const userNotificationPreferences = pgTable(
+  'USER_NOTIFICATION_PREFERENCES',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id),
+    pushEnabled: boolean('push_enabled').default(true),
+    smsEnabled: boolean('sms_enabled').default(true),
+    dueDateReminder: boolean('due_date_reminder').default(true),
+    lowStockAlert: boolean('low_stock_alert').default(true),
+    dailyReminder: boolean('daily_reminder').default(false),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+);
+
+export const passwordResetOtps = pgTable('PASSWORD_RESET_OTPS', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  phoneNumber: text('phone_number').notNull(),
+  codeHash: text('code_hash').notNull(),
+  channel: text('channel').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  attemptCount: integer('attempt_count').default(0),
+  sentAt: timestamp('sent_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const warung = pgTable('WARUNG', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id),
   namaWarung: text('nama_warung').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const notificationLogs = pgTable('NOTIFICATION_LOGS', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id),
+  warungId: uuid('warung_id').references(() => warung.id),
+  channel: text('channel').notNull(),
+  notificationType: text('notification_type').notNull(),
+  title: text('title'),
+  body: text('body'),
+  payload: jsonb('payload'),
+  providerMessageId: text('provider_message_id'),
+  status: text('status').notNull(),
+  errorMessage: text('error_message'),
+  sentAt: timestamp('sent_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

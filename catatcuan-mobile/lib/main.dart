@@ -1,5 +1,6 @@
 import 'package:catatcuan_mobile/core/constants/env.dart';
 import 'package:catatcuan_mobile/core/router/app_router.dart';
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,8 @@ Future<void> main() async {
     url: Env.supabaseUrl,
     anonKey: Env.supabaseAnonKey,
   );
+
+  await PushNotificationService.instance.initialize();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

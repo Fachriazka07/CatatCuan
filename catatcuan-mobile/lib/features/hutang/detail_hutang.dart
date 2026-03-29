@@ -41,6 +41,21 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
     return DateTime.tryParse(sanitized)?.toLocal() ?? DateTime.now();
   }
 
+  DateTime? _tryParseNullableDate(dynamic value) {
+    final raw = (value ?? '').toString().trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+
+    final sanitized = raw
+        .replaceAll('(', '')
+        .replaceAll(')', '')
+        .replaceAll('"', '')
+        .trim();
+
+    return DateTime.tryParse(sanitized)?.toLocal();
+  }
+
   void _closePage() {
     FocusManager.instance.primaryFocus?.unfocus();
     Future<void>.delayed(Duration.zero, () {
@@ -128,10 +143,17 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: SafeArea(
+                top: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.82,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -326,8 +348,11 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                ],
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             );
           },
@@ -345,6 +370,9 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
     );
     final amountCtrl = TextEditingController(
       text: formatIdrNumber((_data['amount_awal'] as num).toInt()),
+    );
+    DateTime? selectedDueDate = _tryParseNullableDate(
+      _data['tanggal_jatuh_tempo'],
     );
 
     bool isSaving = false;
@@ -367,10 +395,17 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: SafeArea(
+                top: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.82,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -541,6 +576,103 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Jatuh Tempo (Opsional)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6B7280),
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDueDate ?? DateTime.now(),
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 3650),
+                        ),
+                        lastDate: DateTime(2100),
+                        builder: (context, child) {
+                          return Theme(
+                            data: AppTheme.lightTheme.copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: AppTheme.primary,
+                                onPrimary: Colors.white,
+                                surface: Colors.white,
+                                onSurface: Colors.black,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+
+                      if (picked != null && ctx.mounted) {
+                        setModalState(() => selectedDueDate = picked);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFFD1EDD8),
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.event_available,
+                            color: Color(0xFF6B7280),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              selectedDueDate != null
+                                  ? DateFormat(
+                                      'dd MMM yyyy',
+                                      'id_ID',
+                                    ).format(selectedDueDate!)
+                                  : 'Pilih tanggal jatuh tempo',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: selectedDueDate != null
+                                    ? const Color(0xFF374151)
+                                    : const Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                          if (selectedDueDate != null)
+                            GestureDetector(
+                              onTap: () =>
+                                  setModalState(() => selectedDueDate = null),
+                              child: const Icon(
+                                Icons.close,
+                                color: Color(0xFF9CA3AF),
+                                size: 20,
+                              ),
+                            )
+                          else
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Color(0xFF9CA3AF),
+                              size: 20,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
@@ -588,6 +720,9 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                                       'catatan': notesCtrl.text.trim(),
                                       'amount_awal': newAmount,
                                       'amount_sisa': newSisa > 0 ? newSisa : 0,
+                                      'tanggal_jatuh_tempo': selectedDueDate
+                                          ?.toIso8601String()
+                                          .split('T')[0],
                                       'status': newSisa <= 0
                                           ? 'lunas'
                                           : 'belum_lunas',
@@ -600,6 +735,9 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                                   _data['amount_sisa'] = newSisa > 0
                                       ? newSisa
                                       : 0;
+                                  _data['tanggal_jatuh_tempo'] = selectedDueDate
+                                      ?.toIso8601String()
+                                      .split('T')[0];
                                   _data['status'] = newSisa <= 0
                                       ? 'lunas'
                                       : 'belum_lunas';
@@ -648,8 +786,11 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                ],
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             );
           },
@@ -671,6 +812,7 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
     final total = (_data['amount_awal'] as num).toDouble();
     final paid = (_data['amount_terbayar'] as num).toDouble();
     final debt = (_data['amount_sisa'] as num).toDouble();
+    final dueDate = _tryParseNullableDate(_data['tanggal_jatuh_tempo']);
     final isLunas = _data['status'] == 'lunas';
     final isHutang = _data['jenis'] == 'HUTANG'; // we owe them
 
@@ -766,6 +908,25 @@ class _DetailHutangPageState extends State<DetailHutangPage> {
                               ),
                               const SizedBox(height: 32),
                               _buildNotesSection('Catatan', notes),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Divider(
+                                  height: 1,
+                                  color: Color(0xFFF3F4F6),
+                                ),
+                              ),
+                              _buildAmountRow(
+                                'Jatuh Tempo',
+                                dueDate != null
+                                    ? DateFormat(
+                                        'dd MMM yyyy',
+                                        'id_ID',
+                                      ).format(dueDate)
+                                    : '-',
+                                dueDate != null
+                                    ? const Color(0xFFF59E0B)
+                                    : const Color(0xFF374151),
+                              ),
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 16),
                                 child: Divider(

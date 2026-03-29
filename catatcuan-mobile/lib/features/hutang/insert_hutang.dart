@@ -19,6 +19,7 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
   final _cache = DataCacheService.instance;
 
   DateTime _selectedDate = DateTime.now();
+  DateTime? _jatuhTempo;
   String _jenis = 'HUTANG'; // 'HUTANG' or 'PIUTANG'
   
   Map<String, dynamic>? _selectedCustomer;
@@ -61,6 +62,32 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
     }
   }
 
+  Future<void> _pickDueDate() async {
+    final initialDate = _jatuhTempo ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: AppTheme.lightTheme.copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.primary,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _jatuhTempo = picked);
+    }
+  }
+
   Future<void> _saveHutang() async {
     if (_selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih pelanggan terlebih dahulu')));
@@ -86,7 +113,7 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
         'amount_terbayar': 0,
         'amount_sisa': nilai,
         'status': 'belum_lunas',
-        'tanggal_jatuh_tempo': null, 
+        'tanggal_jatuh_tempo': _jatuhTempo?.toIso8601String().split('T')[0],
       };
 
       await _hutangService.addHutang(hutangData);
@@ -455,6 +482,59 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
             hintText: '0',
             keyboardType: TextInputType.number,
             isAmount: true,
+          ),
+          const SizedBox(height: 20),
+          _buildFieldLabel('Jatuh Tempo (Opsional)'),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _pickDueDate,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.event_available,
+                    color: Color(0xFF6B7280),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _jatuhTempo != null
+                          ? DateFormat('dd MMMM yyyy', 'id_ID').format(_jatuhTempo!)
+                          : 'Pilih tanggal jatuh tempo',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: _jatuhTempo != null
+                            ? const Color(0xFF374151)
+                            : const Color(0xFF6B7280).withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                  if (_jatuhTempo != null)
+                    GestureDetector(
+                      onTap: () => setState(() => _jatuhTempo = null),
+                      child: const Icon(
+                        Icons.close,
+                        color: Color(0xFF9CA3AF),
+                        size: 20,
+                      ),
+                    )
+                  else
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFF9CA3AF),
+                      size: 22,
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

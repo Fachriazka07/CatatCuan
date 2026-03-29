@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 import 'package:flutter/material.dart';
@@ -281,6 +282,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
 
       _isRedirectingBlockedUser = true;
+      await PushNotificationService.instance.unregisterCurrentDevice();
       await SessionService.logout();
 
       if (!mounted) {

@@ -84,7 +84,7 @@ export function formatShortId(value: string | null | undefined) {
 export function sumNumericValues(
   values: Array<number | string | null | undefined>,
 ) {
-  return values.reduce((total, value) => {
+  return values.reduce<number>((total, value) => {
     if (value === null || value === undefined || value === '') {
       return total;
     }

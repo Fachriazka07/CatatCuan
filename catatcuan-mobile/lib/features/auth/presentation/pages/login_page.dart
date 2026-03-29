@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -79,6 +80,7 @@ class _LoginPageState extends State<LoginPage> {
 
           // Save Session Locally
           await SessionService.saveSession(userId, phone);
+          await PushNotificationService.instance.syncForUser(userId);
           
           await _checkUserWarung(userId);
         } else {
@@ -314,9 +316,7 @@ class _LoginPageState extends State<LoginPage> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
-                        onPressed: () {
-                          // TODO: Implement Forgot Password
-                        },
+                        onPressed: () => context.push('/forgot-password'),
                         child: Text(
                           'Lupa Password?',
                           style: GoogleFonts.poppins(

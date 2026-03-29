@@ -1,4 +1,5 @@
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
@@ -56,6 +57,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _logout() async {
     try {
+      await PushNotificationService.instance.unregisterCurrentDevice();
       await Supabase.instance.client.auth.signOut();
       await SessionService.logout();
       _cache.clear();
