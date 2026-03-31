@@ -45,3 +45,6 @@ venv/
 
 # Gemini/AI Agent
 .gemini/
+
+# Generated outputs
+output/
