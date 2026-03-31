@@ -2,28 +2,75 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:catatcuan_mobile/core/services/bluetooth_printer_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
-class ReceiptPage extends StatelessWidget {
+class ReceiptPage extends StatefulWidget {
   const ReceiptPage({super.key, required this.transactionData});
   final Map<String, dynamic> transactionData;
 
   @override
+  State<ReceiptPage> createState() => _ReceiptPageState();
+}
+
+class _ReceiptPageState extends State<ReceiptPage> {
+  bool _isPrinting = false;
+
+  num _toNum(Object? value) {
+    if (value is num) return value;
+    return num.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _toStringValue(Object? value, {String fallback = ''}) {
+    final stringValue = value?.toString() ?? '';
+    return stringValue.isEmpty ? fallback : stringValue;
+  }
+
+  Future<void> _handlePrint() async {
+    if (_isPrinting) return;
+
+    setState(() => _isPrinting = true);
+    try {
+      await BluetoothPrinterService.instance.printReceipt(
+        transactionData: widget.transactionData,
+        cache: DataCacheService.instance,
+      );
+      if (!mounted) return;
+      AppToast.showSuccess(context, 'Struk berhasil dikirim ke printer.');
+    } catch (e) {
+      if (!mounted) return;
+      final message = e.toString();
+      AppToast.showError(context, message);
+      if (message.contains('Pilih printer Bluetooth dulu')) {
+        await context.push('/setting/printer');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPrinting = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     final cache = DataCacheService.instance;
     final namaWarung = cache.warungName ?? 'NAMA WARUNG';
     const alamatWarung = ''; // Not cached yet in DataCacheService
 
-    final num diskon = transactionData['diskon'] ?? 0;
-    final num netTotal = transactionData['net_total'] ?? 0;
-    final String paymentMethod = transactionData['payment_method'] ?? 'TUNAI';
-    final String? customerName = transactionData['customer_name'] as String?;
+    final num diskon = _toNum(widget.transactionData['diskon']);
+    final num netTotal = _toNum(widget.transactionData['net_total']);
+    final String paymentMethod = _toStringValue(
+      widget.transactionData['payment_method'],
+      fallback: 'TUNAI',
+    );
+    final String? customerName = widget.transactionData['customer_name'] as String?;
 
     // Penjualan Master Data
     final penjualan =
-        transactionData['penjualan'] as Map<String, dynamic>? ?? {};
+        widget.transactionData['penjualan'] as Map<String, dynamic>? ?? {};
     final invoiceNo = penjualan['invoice_no'] as String? ?? 'INV-XXXX';
     final totalAmount = penjualan['total_amount'] as num? ?? 0;
     final amountPaid = penjualan['amount_paid'] as num? ?? 0;
@@ -37,7 +84,10 @@ class ReceiptPage extends StatelessWidget {
     tanggalTx ??= DateTime.now();
     final tanggalStr = DateFormat('dd MMM yyyy HH:mm').format(tanggalTx);
 
-    final items = transactionData['items'] as List<dynamic>? ?? [];
+    final items = (widget.transactionData['items'] as List<dynamic>? ?? [])
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
 
     final currencyCcy = NumberFormat.currency(
       locale: 'id_ID',
@@ -100,7 +150,7 @@ class ReceiptPage extends StatelessWidget {
 
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.fromLTRB(24, 24, 24, 180 + bottomInset),
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -170,9 +220,9 @@ class ReceiptPage extends StatelessWidget {
 
                     // Items List
                     ...items.map((item) {
-                      final name = item['nama_produk'] as String? ?? '';
-                      final qty = item['quantity'] as num? ?? 0;
-                      final sub = item['subtotal'] as num? ?? 0;
+                      final name = _toStringValue(item['nama_produk']);
+                      final qty = _toNum(item['quantity']);
+                      final sub = _toNum(item['subtotal']);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
@@ -287,13 +337,20 @@ class ReceiptPage extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    AppToast.showWarning(context, 'Printer belum disiapkan.');
-                  },
-                  icon: const Icon(Icons.print, color: Color(0xFFF8BD00)),
-                  label: const Text(
-                    'CETAK STRUK',
-                    style: TextStyle(
+                  onPressed: _isPrinting ? null : _handlePrint,
+                  icon: _isPrinting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFF8BD00),
+                          ),
+                        )
+                      : const Icon(Icons.print, color: Color(0xFFF8BD00)),
+                  label: Text(
+                    _isPrinting ? 'MENCETAK...' : 'CETAK STRUK',
+                    style: const TextStyle(
                       color: Color(0xFFF8BD00),
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Poppins',

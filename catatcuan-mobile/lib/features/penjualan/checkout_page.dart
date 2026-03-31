@@ -1,5 +1,6 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -182,15 +183,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (delta > 0) {
       final product = _findProductById(pid);
-      final stock =
-          num.parse((product?['stok_saat_ini'] ?? 0).toString()).toInt();
+      final stock = product?['stok_saat_ini'];
 
-      if (currentQty >= stock && stock > 0) {
+      if (!ProductStockHelper.canAddToCart(
+        rawValue: stock,
+        currentQty: currentQty,
+      )) {
+        if (ProductStockHelper.isOutOfStock(stock)) {
+          AppToast.showWarning(context, 'Produk sedang habis');
+          return;
+        }
         AppToast.showWarning(context, 'Stok tidak mencukupi');
         return;
       }
 
-      if (stock <= 0) {
+      if (ProductStockHelper.isOutOfStock(stock)) {
         AppToast.showWarning(context, 'Produk sedang habis');
         return;
       }
@@ -315,7 +322,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .insert(penjualanData)
           .select()
           .single();
-      final penjualanId = insertedPenjualan['id'];
+      final String penjualanId = insertedPenjualan['id'].toString();
 
       // 2. Insert PENJUALAN_ITEM (with harga_modal for profit tracking)
       final List<Map<String, dynamic>> itemsToInsert = [];
@@ -391,8 +398,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       for (var p in _cartProducts) {
         final pid = p['id'] as String;
         final qty = _cart[pid] ?? 0;
-        final currentStock = num.parse((p['stok_saat_ini'] ?? 0).toString());
-        final newStock = (currentStock - qty).clamp(0, double.infinity);
+        final newStock = ProductStockHelper.nextStockAfterSale(
+          rawValue: p['stok_saat_ini'],
+          qtySold: qty,
+        );
 
         await _supabase
             .from('PRODUK')
@@ -641,8 +650,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
             final pid = product['id'] as String;
             final qty = _cart[pid] ?? 0;
             final price = num.parse((product['harga_jual'] ?? 0).toString());
-            final stock = num.parse((product['stok_saat_ini'] ?? 0).toString()).toInt();
-            final isAddDisabled = stock <= 0 || qty >= stock;
+            final stock = ProductStockHelper.parseStock(product['stok_saat_ini']);
+            final isAddDisabled = !ProductStockHelper.canAddToCart(
+              rawValue: stock,
+              currentQty: qty,
+            );
 
             String iconName = 'Lainya.png';
             if (product['KATEGORI_PRODUK'] != null) {

@@ -14,6 +14,14 @@ class PengeluaranListPage extends StatefulWidget {
 class _PengeluaranListPageState extends State<PengeluaranListPage> {
   final _supabase = Supabase.instance.client;
   final _cache = DataCacheService.instance;
+  static const Set<String> _availableExpenseIcons = {
+    'Kesehatan.png',
+    'LainnyaPribadi.png',
+    'MakanDapur.png',
+    'Pakaian.png',
+    'Pendidikan.png',
+    'Sedekah.png',
+  };
   static final RegExp _sourceTagPattern = RegExp(
     r'^\[Sumber:\s*([^\]]+)\]\s*',
     caseSensitive: false,
@@ -88,6 +96,14 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
   String _formatExpenseNote(String? note) {
     final cleaned = (note ?? '').replaceFirst(_sourceTagPattern, '').trim();
     return cleaned.isEmpty ? '-' : cleaned;
+  }
+
+  String _resolveExpenseIconPath(String? iconName) {
+    final normalized = iconName?.trim() ?? '';
+    if (_availableExpenseIcons.contains(normalized)) {
+      return 'assets/icon/pengeluaran-icon/$normalized';
+    }
+    return 'assets/icon/produk-icon/Lainya.png';
   }
 
   @override
@@ -371,11 +387,15 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
               ),
               child: Center(
                 child: Image.asset(
-                  'assets/icon/pengeluaran-icon/${iconPath ?? 'LainnyaPribadi.png'}',
+                  _resolveExpenseIconPath(iconPath),
                   width: 40,
                   height: 40,
                   errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.wallet, color: Color(0xFFF8BD00)),
+                      Image.asset(
+                        'assets/icon/produk-icon/Lainya.png',
+                        width: 40,
+                        height: 40,
+                      ),
                 ),
               ),
             ),

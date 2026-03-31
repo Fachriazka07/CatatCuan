@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
-import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/core/utils/barcode_helper.dart';
@@ -10,11 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 
 class InsertProductPage extends StatefulWidget {
-  const InsertProductPage({
-    super.key,
-    this.initialBarcode,
-  });
-
+  const InsertProductPage({super.key, this.initialBarcode});
   final String? initialBarcode;
 
   @override
@@ -44,24 +39,23 @@ class _InsertProductPageState extends State<InsertProductPage> {
   String? _warungId;
   String _kodeProduk = '';
 
-  void _closePage() {
-    FocusManager.instance.primaryFocus?.unfocus();
-    Future<void>.delayed(Duration.zero, () {
-      if (mounted && Navigator.of(context).canPop()) {
-        context.pop();
-      }
-    });
-  }
-
   /// Valid icon filenames in assets/icon/produk-icon/
   static const Set<String> _validIcons = {
-    'BumbuDapur.png', 'Cemilan.png', 'Lainya.png', 'Minuman.png',
-    'Obat.png', 'PerlengkapanMandi.png', 'Rokok.png', 'Sembako.png',
+    'BumbuDapur.png',
+    'Cemilan.png',
+    'Lainya.png',
+    'Minuman.png',
+    'Obat.png',
+    'PerlengkapanMandi.png',
+    'Rokok.png',
+    'Sembako.png',
   };
 
   /// Resolve icon path — validates against known assets, fallback to Lainya
   String _resolveIconPath(String? iconName) {
-    if (iconName == null || iconName.isEmpty || !_validIcons.contains(iconName)) {
+    if (iconName == null ||
+        iconName.isEmpty ||
+        !_validIcons.contains(iconName)) {
       return 'assets/icon/produk-icon/Lainya.png';
     }
     return 'assets/icon/produk-icon/$iconName';
@@ -97,18 +91,24 @@ class _InsertProductPageState extends State<InsertProductPage> {
   String _generateKodeProduk() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final rng = Random();
-    final code =
-        List.generate(12, (_) => chars[rng.nextInt(chars.length)]).join();
+    final code = List.generate(
+      12,
+      (_) => chars[rng.nextInt(chars.length)],
+    ).join();
     return 'U$code';
   }
 
   double _margin = 0;
   void _calculateMargin() {
-    final beli = double.tryParse(
-            _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+    final beli =
+        double.tryParse(
+          _hargaModalController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
         0;
-    final jual = double.tryParse(
-            _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+    final jual =
+        double.tryParse(
+          _hargaJualController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
         0;
     setState(() => _margin = jual - beli);
   }
@@ -131,14 +131,19 @@ class _InsertProductPageState extends State<InsertProductPage> {
         'kategori_id': _selectedKategoriId,
         'nama_produk': _namaController.text,
         'barcode': _kodeProduk,
-        'harga_modal': double.tryParse(
-                _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+        'harga_modal':
+            double.tryParse(
+              _hargaModalController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+            ) ??
             0,
-        'harga_jual': double.tryParse(
-                _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+        'harga_jual':
+            double.tryParse(
+              _hargaJualController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+            ) ??
             0,
-        'stok_saat_ini':
-            _tanpaStok ? 0 : (int.tryParse(_stokController.text) ?? 0),
+        'stok_saat_ini': _tanpaStok
+            ? 0
+            : (int.tryParse(_stokController.text) ?? 0),
         'satuan': _selectedSatuan,
         'is_active': true,
       };
@@ -164,7 +169,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
             _buildHeader(),
@@ -195,7 +199,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
     );
   }
 
-
   Widget _buildHeader() {
     return Container(
       height: 100,
@@ -225,7 +228,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: _closePage,
+                  onTap: () => context.pop(),
                   child: Container(
                     width: 40,
                     height: 40,
@@ -233,8 +236,11 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       shape: BoxShape.circle,
                       color: Colors.white,
                     ),
-                    child: const Icon(Icons.close, color: Colors.black,
-                        size: 24),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.black,
+                      size: 24,
+                    ),
                   ),
                 ),
               ],
@@ -322,7 +328,9 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFD1EDD8), width: 1.5),
+                        color: const Color(0xFFD1EDD8),
+                        width: 1.5,
+                      ),
                     ),
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -347,10 +355,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: const Color(0xFFD1EDD8), width: 1.5),
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.format_list_bulleted,
-                      color: Color(0xFFF8BD00), size: 32),
+                  child: const Icon(
+                    Icons.format_list_bulleted,
+                    color: Color(0xFFF8BD00),
+                    size: 32,
+                  ),
                 ),
               ),
             ],
@@ -380,7 +393,9 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFD1EDD8), width: 1.5),
+                        color: const Color(0xFFD1EDD8),
+                        width: 1.5,
+                      ),
                     ),
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -407,10 +422,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: const Color(0xFFD1EDD8), width: 1.5),
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.format_list_bulleted,
-                      color: Color(0xFFF8BD00), size: 32),
+                  child: const Icon(
+                    Icons.format_list_bulleted,
+                    color: Color(0xFFF8BD00),
+                    size: 32,
+                  ),
                 ),
               ),
             ],
@@ -556,7 +576,9 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       },
                       activeColor: AppTheme.primary,
                       side: const BorderSide(
-                          color: Color(0xFF6B7280), width: 1.5),
+                        color: Color(0xFF6B7280),
+                        width: 1.5,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(5),
                       ),
@@ -606,7 +628,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       child: TextFormField(
                         controller: _hargaModalController,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [CurrencyInputFormatter()],
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Wajib' : null,
                         style: TextStyle(
@@ -615,15 +636,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                           color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                           fontFamily: 'Poppins',
                         ),
-                        decoration: _inputDecoration('').copyWith(
-                          prefixText: 'Rp ',
-                          prefixStyle: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
+                        decoration: _inputDecoration(''),
                       ),
                     ),
                   ],
@@ -649,7 +662,6 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       child: TextFormField(
                         controller: _hargaJualController,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [CurrencyInputFormatter()],
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Wajib' : null,
                         style: TextStyle(
@@ -658,15 +670,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                           color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                           fontFamily: 'Poppins',
                         ),
-                        decoration: _inputDecoration('').copyWith(
-                          prefixText: 'Rp ',
-                          prefixStyle: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
+                        decoration: _inputDecoration(''),
                       ),
                     ),
                   ],
@@ -682,17 +686,18 @@ class _InsertProductPageState extends State<InsertProductPage> {
             child: Text(
               'Margin Keuntungan untuk produk ini sebesar',
               style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                  fontFamily: 'Poppins'),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'Rp ${formatIdrNumber(_margin.abs().round())},-',
+              'Rp ${_margin.abs().toStringAsFixed(0)},-',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -752,8 +757,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
       ),
       filled: true,
       fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
@@ -1058,7 +1062,9 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         child: ElevatedButton(
                           onPressed: () {
                             if (controller.text.trim().isNotEmpty) {
-                              setState(() => _kodeProduk = controller.text.trim());
+                              setState(
+                                () => _kodeProduk = controller.text.trim(),
+                              );
                             }
                             Navigator.pop(ctx);
                           },
@@ -1123,9 +1129,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
                   const Text(
                     'Pilih Kategori',
                     style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins'),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Scrollable list
@@ -1140,11 +1147,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                             width: 32,
                             height: 32,
                           ),
-                          title: const Text('Lainnya',
-                              style: TextStyle(fontFamily: 'Poppins')),
+                          title: const Text(
+                            'Lainnya',
+                            style: TextStyle(fontFamily: 'Poppins'),
+                          ),
                           trailing: _selectedKategoriId == null
-                              ? const Icon(Icons.check_circle,
-                                  color: AppTheme.primary)
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppTheme.primary,
+                                )
                               : null,
                           onTap: () {
                             setState(() {
@@ -1162,14 +1173,20 @@ class _InsertProductPageState extends State<InsertProductPage> {
                               cat['icon']?.toString() ?? 'Lainya.png';
                           final iconPath = _resolveIconPath(iconFile);
                           return ListTile(
-                            leading:
-                                Image.asset(iconPath, width: 32, height: 32),
-                            title: Text(catName,
-                                style:
-                                    const TextStyle(fontFamily: 'Poppins')),
+                            leading: Image.asset(
+                              iconPath,
+                              width: 32,
+                              height: 32,
+                            ),
+                            title: Text(
+                              catName,
+                              style: const TextStyle(fontFamily: 'Poppins'),
+                            ),
                             trailing: _selectedKategoriId == cat['id']
-                                ? const Icon(Icons.check_circle,
-                                    color: AppTheme.primary)
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primary,
+                                  )
                                 : null,
                             onTap: () {
                               setState(() {
@@ -1194,14 +1211,20 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add,
-                          color: AppTheme.primary, size: 20),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
                     ),
-                    title: const Text('Tambah Kategori',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary)),
+                    title: const Text(
+                      'Tambah Kategori',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primary,
+                      ),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _showAddKategoriDialog();
@@ -1259,8 +1282,11 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.add_rounded,
-                          color: AppTheme.primary, size: 24),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: AppTheme.primary,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     const Expanded(
@@ -1341,13 +1367,16 @@ class _InsertProductPageState extends State<InsertProductPage> {
                             if (name.isEmpty || _warungId == null) return;
 
                             try {
-                              final result =
-                                  await supabase.from('KATEGORI_PRODUK').insert({
-                                'warung_id': _warungId,
-                                'nama_kategori': name,
-                                'icon': 'Lainya.png',
-                                'sort_order': _categories.length,
-                              }).select().single();
+                              final result = await supabase
+                                  .from('KATEGORI_PRODUK')
+                                  .insert({
+                                    'warung_id': _warungId,
+                                    'nama_kategori': name,
+                                    'icon': 'Lainya.png',
+                                    'sort_order': _categories.length,
+                                  })
+                                  .select()
+                                  .single();
 
                               setState(() {
                                 _categories.add(result);
@@ -1424,9 +1453,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
                   const Text(
                     'Pilih Satuan',
                     style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins'),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Scrollable list
@@ -1437,13 +1467,18 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         ..._satuanItems.map((sat) {
                           final name = sat['nama_satuan'].toString();
                           return ListTile(
-                            title: Text(name,
-                                style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w500)),
+                            title: Text(
+                              name,
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             trailing: _selectedSatuanId == sat['id']
-                                ? const Icon(Icons.check_circle,
-                                    color: AppTheme.primary)
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primary,
+                                  )
                                 : null,
                             onTap: () {
                               setState(() {
@@ -1467,14 +1502,20 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add,
-                          color: AppTheme.primary, size: 20),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
                     ),
-                    title: const Text('Tambah Satuan',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary)),
+                    title: const Text(
+                      'Tambah Satuan',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primary,
+                      ),
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _showAddSatuanDialog();
@@ -1532,8 +1573,11 @@ class _InsertProductPageState extends State<InsertProductPage> {
                         color: AppTheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.add_rounded,
-                          color: AppTheme.primary, size: 24),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: AppTheme.primary,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     const Expanded(
@@ -1614,12 +1658,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                             if (name.isEmpty || _warungId == null) return;
 
                             try {
-                              final result =
-                                  await supabase.from('SATUAN_PRODUK').insert({
-                                'warung_id': _warungId,
-                                'nama_satuan': name,
-                                'sort_order': _satuanItems.length,
-                              }).select().single();
+                              final result = await supabase
+                                  .from('SATUAN_PRODUK')
+                                  .insert({
+                                    'warung_id': _warungId,
+                                    'nama_satuan': name,
+                                    'sort_order': _satuanItems.length,
+                                  })
+                                  .select()
+                                  .single();
 
                               setState(() {
                                 _satuanItems.add(result);
@@ -1663,4 +1710,3 @@ class _InsertProductPageState extends State<InsertProductPage> {
     );
   }
 }
-

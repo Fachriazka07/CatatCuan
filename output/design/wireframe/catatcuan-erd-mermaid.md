@@ -1,6 +1,7 @@
 erDiagram
-    direction LR
+    direction TB
 
+    %% ==================== ADMIN & SISTEM ====================
     ADMIN_USERS {
         uuid id PK
         text email UK
@@ -27,6 +28,7 @@ erDiagram
         timestamptz created_at
     }
 
+    %% ==================== MASTER DATA ====================
     MASTER_KATEGORI_PRODUK {
         uuid id PK
         text nama_kategori
@@ -44,6 +46,7 @@ erDiagram
         timestamptz created_at
     }
 
+    %% ==================== USER, WARUNG, DEVICE ====================
     USERS {
         uuid id PK
         text phone_number UK
@@ -52,6 +55,42 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
         timestamptz last_login_at
+    }
+
+    MOBILE_DEVICE_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        text device_token UK
+        text platform
+        text device_label
+        boolean is_active
+        timestamptz last_seen_at
+        text last_error
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    USER_NOTIFICATION_PREFERENCES {
+        uuid user_id PK
+        boolean push_enabled
+        boolean sms_enabled
+        boolean due_date_reminder
+        boolean low_stock_alert
+        boolean daily_reminder
+        timestamptz updated_at
+    }
+
+    PASSWORD_RESET_OTPS {
+        uuid id PK
+        uuid user_id FK
+        text phone_number
+        text code_hash
+        text channel
+        timestamptz expires_at
+        timestamptz used_at
+        int attempt_count
+        timestamptz sent_at
+        timestamptz created_at
     }
 
     WARUNG {
@@ -66,6 +105,23 @@ erDiagram
         timestamptz updated_at
     }
 
+    NOTIFICATION_LOGS {
+        uuid id PK
+        uuid user_id FK
+        uuid warung_id FK
+        text channel
+        text notification_type
+        text title
+        text body
+        jsonb payload
+        text provider_message_id
+        text status
+        text error_message
+        timestamptz sent_at
+        timestamptz created_at
+    }
+
+    %% ==================== KATALOG & PELANGGAN ====================
     KATEGORI_PRODUK {
         uuid id PK
         uuid warung_id FK
@@ -112,6 +168,7 @@ erDiagram
         timestamptz updated_at
     }
 
+    %% ==================== TRANSAKSI PENJUALAN ====================
     PENJUALAN {
         uuid id PK
         uuid warung_id FK
@@ -141,6 +198,7 @@ erDiagram
         decimal harga_modal
     }
 
+    %% ==================== PENGELUARAN ====================
     KATEGORI_PENGELUARAN {
         uuid id PK
         uuid warung_id FK
@@ -161,6 +219,7 @@ erDiagram
         timestamptz updated_at
     }
 
+    %% ==================== HUTANG / PIUTANG ====================
     HUTANG {
         uuid id PK
         uuid warung_id FK
@@ -186,6 +245,7 @@ erDiagram
         timestamptz created_at
     }
 
+    %% ==================== KAS & LAPORAN ====================
     BUKU_KAS {
         uuid id PK
         uuid warung_id FK
@@ -214,13 +274,21 @@ erDiagram
         timestamptz calculated_at
     }
 
-    ADMIN_USERS ||--o{ APP_CONFIG : updates
-    ADMIN_USERS ||--o{ SYSTEM_LOGS : writes
+    %% ==================== RELASI ADMIN & SISTEM ====================
+    ADMIN_USERS o|--o{ APP_CONFIG : updates
+    ADMIN_USERS o|--o{ SYSTEM_LOGS : writes
 
+    %% ==================== RELASI USER & WARUNG ====================
+    USERS ||--o{ MOBILE_DEVICE_TOKENS : uses
+    USERS ||--o| USER_NOTIFICATION_PREFERENCES : has
+    USERS ||--o{ PASSWORD_RESET_OTPS : requests
     USERS ||--o{ WARUNG : owns
+    USERS o|--o{ NOTIFICATION_LOGS : receives
+    WARUNG o|--o{ NOTIFICATION_LOGS : sends_for
 
-    MASTER_KATEGORI_PRODUK ||--o{ KATEGORI_PRODUK : template_for
-    MASTER_SATUAN ||--o{ SATUAN_PRODUK : template_for
+    %% ==================== RELASI MASTER & KATALOG ====================
+    MASTER_KATEGORI_PRODUK o|--o{ KATEGORI_PRODUK : templates
+    MASTER_SATUAN o|--o{ SATUAN_PRODUK : templates
 
     WARUNG ||--o{ KATEGORI_PRODUK : has
     WARUNG ||--o{ SATUAN_PRODUK : has
@@ -228,6 +296,8 @@ erDiagram
     KATEGORI_PRODUK o|--o{ PRODUK : categorizes
 
     WARUNG ||--o{ PELANGGAN : has
+
+    %% ==================== RELASI TRANSAKSI ====================
     WARUNG ||--o{ PENJUALAN : records
     PELANGGAN o|--o{ PENJUALAN : makes
     PENJUALAN ||--|{ PENJUALAN_ITEM : contains
@@ -237,10 +307,18 @@ erDiagram
     WARUNG ||--o{ PENGELUARAN : records
     KATEGORI_PENGELUARAN ||--o{ PENGELUARAN : categorizes
 
+    %% ==================== RELASI HUTANG / PIUTANG ====================
     WARUNG ||--o{ HUTANG : records
     PELANGGAN ||--o{ HUTANG : owes
-    PENJUALAN ||--o| HUTANG : creates
+    PENJUALAN o|--o| HUTANG : originates
     HUTANG ||--o{ PEMBAYARAN_HUTANG : paid_by
 
+    %% ==================== RELASI KAS & LAPORAN ====================
     WARUNG ||--o{ BUKU_KAS : tracks
-    WARUNG ||--o{ LAPORAN_HARIAN : generates
+    WARUNG ||--o{ LAPORAN_HARIAN : summarizes
+    
+    %% Catatan:
+    %% - PRODUK.satuan masih berupa text, bukan foreign key ke SATUAN_PRODUK.
+    %% - BUKU_KAS.reference_id dan reference_type adalah referensi logis, bukan foreign key fisik.
+    %% - NOTIFICATION_LOGS.user_id, NOTIFICATION_LOGS.warung_id, APP_CONFIG.updated_by,
+    %%   dan HUTANG.penjualan_id bersifat opsional sesuai schema SQL.

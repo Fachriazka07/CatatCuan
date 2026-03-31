@@ -50,10 +50,13 @@ dependencies:
   flutter_svg: ^2.2.3
   flutter_dotenv: ^6.0.0
   shared_preferences: ^2.5.3
+  permission_handler: ^12.0.1
+  printer_service: ^2.0.4
   simple_barcode_scanner: ^0.4.0
   toastification: ^3.0.3
   excel: ^4.0.6
   pdf: ^3.11.3
+  esc_pos_utils_plus: ^2.0.4
   share_plus: ^11.1.0
   fl_chart: ^0.70.2
   url_launcher: ^6.3.1
@@ -70,6 +73,10 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   drift_dev: ^2.30.1
   build_runner: ^2.10.5
+
+dependency_overrides:
+  printer_service:
+    path: third_party/printer_service
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -24,7 +24,9 @@ import 'package:catatcuan_mobile/features/settings/product_units_page.dart';
 import 'package:catatcuan_mobile/features/settings/opening_balance_page.dart';
 import 'package:catatcuan_mobile/features/settings/about_app_page.dart';
 import 'package:catatcuan_mobile/features/settings/privacy_policy_page.dart';
+import 'package:catatcuan_mobile/features/settings/terms_conditions_page.dart';
 import 'package:catatcuan_mobile/features/settings/notification_settings_page.dart';
+import 'package:catatcuan_mobile/features/settings/printer_settings_page.dart';
 import 'package:catatcuan_mobile/core/services/settings_profile_service.dart';
 import 'package:catatcuan_mobile/features/pelanggan/customer_list.dart';
 import 'package:catatcuan_mobile/features/pelanggan/add_customer.dart';
@@ -37,7 +39,6 @@ import 'package:catatcuan_mobile/features/hutang/insert_hutang.dart';
 import 'package:catatcuan_mobile/features/hutang/detail_hutang.dart';
 import 'package:catatcuan_mobile/features/laporan/presentation/pages/laporan_page.dart';
 import 'package:catatcuan_mobile/features/stats/presentation/pages/stats_page.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/splash_page.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/pages/welcome_page.dart';
@@ -98,6 +99,14 @@ class AppRouter {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: '/legal/terms',
+        builder: (context, state) => const TermsConditionsPage(),
+      ),
+      GoRoute(
+        path: '/legal/privacy',
+        builder: (context, state) => const PrivacyPolicyPage(),
       ),
       GoRoute(
         path: '/onboarding',
@@ -260,6 +269,10 @@ class AppRouter {
         builder: (context, state) => const NotificationSettingsPage(),
       ),
       GoRoute(
+        path: '/setting/printer',
+        builder: (context, state) => const PrinterSettingsPage(),
+      ),
+      GoRoute(
         path: '/setting/product-categories',
         builder: (context, state) => const ProductCategoriesPage(),
       ),
@@ -282,6 +295,10 @@ class AppRouter {
       GoRoute(
         path: '/setting/privacy',
         builder: (context, state) => const PrivacyPolicyPage(),
+      ),
+      GoRoute(
+        path: '/setting/terms',
+        builder: (context, state) => const TermsConditionsPage(),
       ),
     ],
   );

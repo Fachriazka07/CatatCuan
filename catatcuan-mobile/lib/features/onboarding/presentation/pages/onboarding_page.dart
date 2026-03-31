@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/features/onboarding/presentation/widgets/onboarding_capital.dart';
@@ -72,6 +74,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+    }
+  }
+
+  void _primeWarungCache({
+    required String warungId,
+    required double cashInDrawer,
+    required double personalCapital,
+  }) {
+    final cache = DataCacheService.instance;
+    cache.warungId = warungId;
+    cache.userName = _ownerNameController.text.trim();
+    cache.warungName = _businessNameController.text.trim();
+    cache.saldoAwal = cashInDrawer;
+    cache.uangKas = personalCapital;
+    cache.uangKasOperasional = 0;
+  }
+
+  Future<void> _warmUpCacheInBackground(String userId) async {
+    try {
+      await DataCacheService.instance
+          .loadAll(userId)
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      debugPrint('[Onboarding] Background cache warmup failed: $e');
     }
   }
 
@@ -175,13 +201,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
       await _seedCategories(warungId);
       await _seedSatuan(warungId);
 
+      _primeWarungCache(
+        warungId: warungId,
+        cashInDrawer: cashInDrawer,
+        personalCapital: personalCapital,
+      );
+
       if (mounted) {
-        // Preload all data into cache before navigating
-        final cachedUserId = await SessionService.getUserId();
-        if (cachedUserId != null) {
-          await DataCacheService.instance.loadAll(cachedUserId);
+        if (userId.isNotEmpty) {
+          unawaited(_warmUpCacheInBackground(userId));
         }
-        if (mounted) context.go('/home');
+        context.go('/home');
       }
 
     } catch (e) {

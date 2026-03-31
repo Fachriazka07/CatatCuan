@@ -73,6 +73,33 @@ enum StatsPeriod { harian, mingguan, bulanan, triwulanan }
 class StatsService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  String _stringValue(Object? value, {String fallback = ''}) {
+    final stringValue = value?.toString().trim() ?? '';
+    return stringValue.isEmpty ? fallback : stringValue;
+  }
+
+  double _doubleValue(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int _intValue(Object? value) {
+    if (value is num) {
+      return value.toInt();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  List<Map<String, dynamic>> _mapList(Object? value) {
+    final list = value is List ? value : const [];
+    return list
+        .whereType<Map>()
+        .map((entry) => Map<String, dynamic>.from(entry))
+        .toList();
+  }
+
   Future<StatsSummary> getStats({
     required String warungId,
     required StatsPeriod period,
@@ -169,34 +196,34 @@ class StatsService {
     StatsPeriod period,
   ) {
     // Process Current
-    final currentSales = current['sales'] as List;
-    final currentExpenses = current['expenses'] as List;
-    final currentKas = current['cashflow'] as List;
-    final currentItems = current['items'] as List;
+    final currentSales = _mapList(current['sales']);
+    final currentExpenses = _mapList(current['expenses']);
+    final currentKas = _mapList(current['cashflow']);
+    final currentItems = _mapList(current['items']);
 
     double omzet = 0;
     double profit = 0;
     double tunai = 0;
     double hutang = 0;
     for (var s in currentSales) {
-      omzet += (s['total_amount'] as num).toDouble();
-      profit += (s['profit'] as num).toDouble();
+      omzet += _doubleValue(s['total_amount']);
+      profit += _doubleValue(s['profit']);
       if (s['payment_method'] == 'tunai') {
-        tunai += (s['total_amount'] as num).toDouble();
+        tunai += _doubleValue(s['total_amount']);
       } else {
-        hutang += (s['total_amount'] as num).toDouble();
+        hutang += _doubleValue(s['total_amount']);
       }
     }
 
     double pengeluaran = 0;
     for (var e in currentExpenses) {
-      pengeluaran += (e['amount'] as num).toDouble();
+      pengeluaran += _doubleValue(e['amount']);
     }
 
     double kasMasuk = 0;
     double kasKeluar = 0;
     for (var k in currentKas) {
-      double amt = (k['amount'] as num).toDouble();
+      final amt = _doubleValue(k['amount']);
       if (k['tipe'] == 'masuk') {
         kasMasuk += amt;
       } else {
@@ -205,26 +232,26 @@ class StatsService {
     }
 
     // Process Previous for Delta
-    final prevSales = prev['sales'] as List;
-    final prevExpenses = prev['expenses'] as List;
-    final prevKas = prev['cashflow'] as List;
+    final prevSales = _mapList(prev['sales']);
+    final prevExpenses = _mapList(prev['expenses']);
+    final prevKas = _mapList(prev['cashflow']);
 
     double prevOmzet = 0;
     double prevProfit = 0;
     for (var s in prevSales) {
-      prevOmzet += (s['total_amount'] as num).toDouble();
-      prevProfit += (s['profit'] as num).toDouble();
+      prevOmzet += _doubleValue(s['total_amount']);
+      prevProfit += _doubleValue(s['profit']);
     }
 
     double prevPengeluaran = 0;
     for (var e in prevExpenses) {
-      prevPengeluaran += (e['amount'] as num).toDouble();
+      prevPengeluaran += _doubleValue(e['amount']);
     }
 
     double prevKasMasuk = 0;
     double prevKasKeluar = 0;
     for (var k in prevKas) {
-      double amt = (k['amount'] as num).toDouble();
+      final amt = _doubleValue(k['amount']);
       if (k['tipe'] == 'masuk') {
         prevKasMasuk += amt;
       } else {
@@ -243,23 +270,23 @@ class StatsService {
     List<ChartDataPoint> cashflowData = _groupCashflowData(currentKas, period);
 
     // Top Products
-    Map<String, int> productMap = {};
+    final productMap = <String, int>{};
     for (var item in currentItems) {
-      String name = item['nama_produk'] ?? 'Produk';
-      int qty = (item['quantity'] as num).toInt();
+      final name = _stringValue(item['nama_produk'], fallback: 'Produk');
+      final qty = _intValue(item['quantity']);
       productMap[name] = (productMap[name] ?? 0) + qty;
     }
-    var sortedProducts = productMap.entries.toList()
+    final sortedProducts = productMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    List<TopProduct> topProducts = sortedProducts
+    final topProducts = sortedProducts
         .take(3)
         .map((e) => TopProduct(name: e.key, quantity: e.value))
         .toList();
 
     // Busiest Period
-    String busiest = _findBusiestPeriod(currentSales, period);
+    final busiest = _findBusiestPeriod(currentSales, period);
 
-    double totalPayment = tunai + hutang;
+    final totalPayment = tunai + hutang;
     
     return StatsSummary(
       omzet: omzet,
@@ -288,28 +315,36 @@ class StatsService {
     return ((current - prev) / prev) * 100;
   }
 
-  List<ChartDataPoint> _groupTrendData(List sales, StatsPeriod period) {
-    Map<String, List<double>> groups = {};
+  List<ChartDataPoint> _groupTrendData(
+    List<Map<String, dynamic>> sales,
+    StatsPeriod period,
+  ) {
+    final groups = <String, List<double>>{};
 
     for (var s in sales) {
-      DateTime date = DateTime.parse(s['tanggal']).toLocal();
-      String label = _getLabelForDate(date, period);
+      final date =
+          DateTime.parse(_stringValue(s['tanggal'])).toLocal();
+      final label = _getLabelForDate(date, period);
       groups.putIfAbsent(label, () => [0, 0]);
-      groups[label]![0] += (s['total_amount'] as num).toDouble();
-      groups[label]![1] += (s['profit'] as num).toDouble();
+      groups[label]![0] += _doubleValue(s['total_amount']);
+      groups[label]![1] += _doubleValue(s['profit']);
     }
 
     return _fillMissingLabels(groups, period);
   }
 
-  List<ChartDataPoint> _groupCashflowData(List kas, StatsPeriod period) {
-    Map<String, List<double>> groups = {};
+  List<ChartDataPoint> _groupCashflowData(
+    List<Map<String, dynamic>> kas,
+    StatsPeriod period,
+  ) {
+    final groups = <String, List<double>>{};
 
     for (var k in kas) {
-      DateTime date = DateTime.parse(k['tanggal']).toLocal();
-      String label = _getLabelForDate(date, period);
+      final date =
+          DateTime.parse(_stringValue(k['tanggal'])).toLocal();
+      final label = _getLabelForDate(date, period);
       groups.putIfAbsent(label, () => [0, 0]);
-      double amt = (k['amount'] as num).toDouble();
+      final amt = _doubleValue(k['amount']);
       if (k['tipe'] == 'masuk') {
         groups[label]![0] += amt;
       } else {
@@ -333,9 +368,12 @@ class StatsService {
     }
   }
 
-  List<ChartDataPoint> _fillMissingLabels(Map<String, List<double>> groups, StatsPeriod period) {
-    List<String> labels = [];
-    DateTime now = DateTime.now();
+  List<ChartDataPoint> _fillMissingLabels(
+    Map<String, List<double>> groups,
+    StatsPeriod period,
+  ) {
+    final labels = <String>[];
+    final now = DateTime.now();
 
     switch (period) {
       case StatsPeriod.harian:
@@ -344,13 +382,13 @@ class StatsService {
         }
         break;
       case StatsPeriod.mingguan:
-        DateTime start = now.subtract(Duration(days: now.weekday - 1));
+        final start = now.subtract(Duration(days: now.weekday - 1));
         for (int i = 0; i < 7; i++) {
           labels.add(DateFormat('EEE', 'id_ID').format(start.add(Duration(days: i))));
         }
         break;
       case StatsPeriod.bulanan:
-        int days = DateTime(now.year, now.month + 1, 0).day;
+        final days = DateTime(now.year, now.month + 1, 0).day;
         for (int i = 1; i <= days; i++) {
           labels.add(i.toString());
         }
@@ -363,20 +401,22 @@ class StatsService {
     }
 
     return labels.map((l) {
-      var vals = groups[l] ?? [0.0, 0.0];
+      final vals = groups[l] ?? [0.0, 0.0];
       return ChartDataPoint(label: l, value1: vals[0], value2: vals[1]);
     }).toList();
   }
 
-  String _findBusiestPeriod(List sales, StatsPeriod period) {
-    if (sales.isEmpty) return "-";
-    Map<String, int> counts = {};
+  String _findBusiestPeriod(List<Map<String, dynamic>> sales, StatsPeriod period) {
+    if (sales.isEmpty) return '-';
+    final counts = <String, int>{};
     for (var s in sales) {
-      DateTime date = DateTime.parse(s['tanggal']).toLocal();
-      String label = _getLabelForDate(date, period);
+      final date =
+          DateTime.parse(_stringValue(s['tanggal'])).toLocal();
+      final label = _getLabelForDate(date, period);
       counts[label] = (counts[label] ?? 0) + 1;
     }
-    var sorted = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted =
+        counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     return sorted.first.key;
   }
 }

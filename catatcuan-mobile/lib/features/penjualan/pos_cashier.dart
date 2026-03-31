@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/utils/barcode_helper.dart';
+import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -95,16 +96,20 @@ class _PosCashierPageState extends State<PosCashierPage> {
 
   void _addToCart(Map<String, dynamic> product) {
     final pid = product['id'] as String;
-    final stock = num.parse((product['stok_saat_ini'] ?? 0).toString()).toInt();
-    
     final currentQty = _cart[pid] ?? 0;
-    
-    // Prevent adding more than stock
-    if (currentQty >= stock && stock > 0) {
+
+    if (!ProductStockHelper.canAddToCart(
+      rawValue: product['stok_saat_ini'],
+      currentQty: currentQty,
+    )) {
+      if (ProductStockHelper.isOutOfStock(product['stok_saat_ini'])) {
+        AppToast.showWarning(context, 'Produk sedang habis');
+        return;
+      }
       AppToast.showWarning(context, 'Stok tidak mencukupi');
       return;
     }
-    
+
     setState(() {
       _cart[pid] = currentQty + 1;
     });
@@ -413,8 +418,9 @@ class _PosCashierPageState extends State<PosCashierPage> {
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final product = _filteredProducts[index];
-        final stock = num.parse((product['stok_saat_ini'] ?? 0).toString()).toInt();
-        final isOutOfStock = stock <= 0;
+        final stock = ProductStockHelper.parseStock(product['stok_saat_ini']);
+        final isUnlimited = ProductStockHelper.isUnlimited(stock);
+        final isOutOfStock = ProductStockHelper.isOutOfStock(stock);
         final price = num.parse((product['harga_jual'] ?? 0).toString()).toInt();
         
         String iconName = 'Lainya.png';
@@ -486,11 +492,15 @@ class _PosCashierPageState extends State<PosCashierPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '• Stok: $stock',
+                                    '• Stok: ${ProductStockHelper.formatStockLabel(stock, unlimitedLabel: 'Unlimited')}',
                                     style: TextStyle(
                                       fontFamily: 'Poppins',
                                       fontSize: 12,
-                                      color: isOutOfStock ? Colors.red : Colors.grey[600],
+                                      color: isOutOfStock
+                                          ? Colors.red
+                                          : isUnlimited
+                                              ? AppTheme.primary
+                                              : Colors.grey[600],
                                     ),
                                   ),
                                 ],

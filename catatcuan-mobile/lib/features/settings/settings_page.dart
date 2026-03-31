@@ -110,10 +110,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showPlaceholder(String title) {
-    AppToast.showInfo(context, 'Fitur $title akan segera hadir');
-  }
-
   Future<void> _openCustomerServiceWhatsApp() async {
     const message =
         'Halo CatatCuan, saya butuh bantuan penggunaan aplikasi.';
@@ -189,6 +185,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         title: 'Notifikasi',
                         subtitle: 'Atur pengingat dan alert aplikasi',
                         onTap: () => context.push('/setting/notifications'),
+                      ),
+                      _buildSettingsItem(
+                        icon: Icons.print_outlined,
+                        title: 'Printer Bluetooth',
+                        subtitle: 'Pilih printer struk dan cek perangkat terhubung',
+                        onTap: () => context.push('/setting/printer'),
                       ),
                     ]),
                     const SizedBox(height: 24),

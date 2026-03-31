@@ -1,0 +1,65 @@
+erDiagram
+    direction LR
+
+    WARUNG {
+        uuid id PK
+        text nama_warung
+    }
+
+    PELANGGAN {
+        uuid id PK
+        uuid warung_id FK
+        text nama
+        decimal total_hutang
+    }
+
+    PENJUALAN {
+        uuid id PK
+        uuid warung_id FK
+        text invoice_no
+        decimal total_amount
+    }
+
+    KATEGORI_PENGELUARAN {
+        uuid id PK
+        uuid warung_id FK
+        text nama_kategori
+        expense_category_type tipe
+        boolean is_system
+    }
+
+    PENGELUARAN {
+        uuid id PK
+        uuid warung_id FK
+        uuid kategori_id FK
+        timestamptz tanggal
+        decimal amount
+        text keterangan
+    }
+
+    HUTANG {
+        uuid id PK
+        uuid warung_id FK
+        uuid pelanggan_id FK
+        uuid penjualan_id FK
+        decimal amount_awal
+        decimal amount_terbayar
+        decimal amount_sisa
+        debt_status status
+    }
+
+    PEMBAYARAN_HUTANG {
+        uuid id PK
+        uuid hutang_id FK
+        timestamptz tanggal
+        decimal amount
+        payment_method_debt metode_bayar
+    }
+
+    WARUNG ||--o{ KATEGORI_PENGELUARAN : has
+    WARUNG ||--o{ PENGELUARAN : records
+    KATEGORI_PENGELUARAN ||--o{ PENGELUARAN : categorizes
+    WARUNG ||--o{ HUTANG : records
+    PELANGGAN ||--o{ HUTANG : owes
+    PENJUALAN o|--o| HUTANG : originates
+    HUTANG ||--o{ PEMBAYARAN_HUTANG : paid_by

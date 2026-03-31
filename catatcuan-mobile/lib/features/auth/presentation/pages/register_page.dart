@@ -285,27 +285,57 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     // Terms and Conditions
                     Center(
-                      child: RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xCC2C2C2C),
-                            fontSize: 12,
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Dengan mendaftar, Anda menyetujui ',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xCC2C2C2C),
+                              fontSize: 12,
+                            ),
                           ),
-                          children: [
-                            const TextSpan(text: 'Dengan mendaftar, Anda menyetujui '),
-                            TextSpan(
-                              text: 'Syarat & Ketentuan',
-                              style: GoogleFonts.poppins(color: AppTheme.primary),
+                          GestureDetector(
+                            onTap: () => context.push('/legal/terms'),
+                            child: Text(
+                              'Syarat & Ketentuan',
+                              style: GoogleFonts.poppins(
+                                color: AppTheme.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            const TextSpan(text: ' dan Kebijakan '),
-                            TextSpan(
-                              text: 'Privasi kami',
-                              style: GoogleFonts.poppins(color: AppTheme.primary),
+                          ),
+                          Text(
+                            ' dan ',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xCC2C2C2C),
+                              fontSize: 12,
                             ),
-                            const TextSpan(text: '.'),
-                          ],
-                        ),
+                          ),
+                          GestureDetector(
+                            onTap: () => context.push('/legal/privacy'),
+                            child: Text(
+                              'Privasi kami',
+                              style: GoogleFonts.poppins(
+                                color: AppTheme.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xCC2C2C2C),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 32),

@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Settings, Plus, Pencil, Trash2, BellRing, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAdminActivity } from '@/lib/admin-activity';
+import { formatShortDate } from '@/lib/admin-format';
 
 interface AppConfig {
   id: string;
@@ -591,9 +592,7 @@ export default function ConfigPage() {
                         {config.description ?? '-'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(config.updated_at).toLocaleDateString(
-                          'id-ID',
-                        )}
+                        {formatShortDate(config.updated_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

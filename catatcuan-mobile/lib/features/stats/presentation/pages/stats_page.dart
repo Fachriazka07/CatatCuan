@@ -27,6 +27,11 @@ class _StatsPageState extends State<StatsPage> {
     symbol: 'Rp ',
     decimalDigits: 0,
   );
+  final NumberFormat _compactCurrencyFormat = NumberFormat.compactCurrency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
 
   @override
   void initState() {
@@ -64,6 +69,8 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   String _formatCurrency(double amount) => _currencyFormat.format(amount);
+  String _formatCompactCurrency(double amount) =>
+      _compactCurrencyFormat.format(amount);
 
   @override
   Widget build(BuildContext context) {
@@ -317,6 +324,26 @@ class _StatsPageState extends State<StatsPage> {
             child: LineChart(
               LineChartData(
                 gridData: const FlGridData(show: false),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => const Color(0xFF1F2937),
+                    tooltipRoundedRadius: 12,
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        final seriesLabel =
+                            spot.barIndex == 0 ? 'Omzet' : 'Profit';
+                        return LineTooltipItem(
+                          '$seriesLabel\n${_formatCurrency(spot.y)}',
+                          const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -336,7 +363,29 @@ class _StatsPageState extends State<StatsPage> {
                       },
                     ),
                   ),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 52,
+                      interval: _getTrendInterval(),
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) {
+                          return const SizedBox();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            _formatCompactCurrency(value),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
@@ -400,6 +449,24 @@ class _StatsPageState extends State<StatsPage> {
             child: BarChart(
               BarChartData(
                 gridData: const FlGridData(show: false),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => const Color(0xFF1F2937),
+                    tooltipRoundedRadius: 12,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final label =
+                          rodIndex == 0 ? 'Kas Masuk' : 'Kas Keluar';
+                      return BarTooltipItem(
+                        '$label\n${_formatCurrency(rod.toY)}',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins',
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -418,7 +485,29 @@ class _StatsPageState extends State<StatsPage> {
                       },
                     ),
                   ),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 52,
+                      interval: _getCashflowInterval(),
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) {
+                          return const SizedBox();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            _formatCompactCurrency(value),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
@@ -565,6 +654,38 @@ class _StatsPageState extends State<StatsPage> {
         );
       }).toList(),
     );
+  }
+
+  double _getTrendInterval() {
+    if (_stats == null || _stats!.trendData.isEmpty) {
+      return 1;
+    }
+
+    final maxValue = _stats!.trendData
+        .expand((point) => [point.value1, point.value2])
+        .fold<double>(0, (current, value) => value > current ? value : current);
+
+    if (maxValue <= 0) {
+      return 1;
+    }
+
+    return maxValue / 4;
+  }
+
+  double _getCashflowInterval() {
+    if (_stats == null || _stats!.cashflowData.isEmpty) {
+      return 1;
+    }
+
+    final maxValue = _stats!.cashflowData
+        .expand((point) => [point.value1, point.value2])
+        .fold<double>(0, (current, value) => value > current ? value : current);
+
+    if (maxValue <= 0) {
+      return 1;
+    }
+
+    return maxValue / 4;
   }
 }
 

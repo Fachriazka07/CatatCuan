@@ -1,0 +1,59 @@
+erDiagram
+    direction LR
+
+    WARUNG {
+        uuid id PK
+        uuid user_id FK
+        text nama_warung
+    }
+
+    MASTER_KATEGORI_PRODUK {
+        uuid id PK
+        text nama_kategori
+        int sort_order
+        boolean is_active
+    }
+
+    MASTER_SATUAN {
+        uuid id PK
+        text nama_satuan
+        int sort_order
+        boolean is_active
+    }
+
+    KATEGORI_PRODUK {
+        uuid id PK
+        uuid warung_id FK
+        uuid master_kategori_id FK
+        text nama_kategori
+        int sort_order
+    }
+
+    SATUAN_PRODUK {
+        uuid id PK
+        uuid warung_id FK
+        uuid master_satuan_id FK
+        text nama_satuan
+        int sort_order
+    }
+
+    PRODUK {
+        uuid id PK
+        uuid warung_id FK
+        uuid kategori_id FK
+        text nama_produk
+        text barcode
+        decimal harga_modal
+        decimal harga_jual
+        int stok_saat_ini
+        int stok_minimum
+        text satuan
+        boolean is_active
+    }
+
+    WARUNG ||--o{ KATEGORI_PRODUK : has
+    WARUNG ||--o{ SATUAN_PRODUK : has
+    WARUNG ||--o{ PRODUK : has
+    MASTER_KATEGORI_PRODUK o|--o{ KATEGORI_PRODUK : templates
+    MASTER_SATUAN o|--o{ SATUAN_PRODUK : templates
+    KATEGORI_PRODUK o|--o{ PRODUK : categorizes

@@ -68,6 +68,7 @@ const item = {
 export default function MasterKategoriPage() {
   const [kategoris, setKategoris] = useState<Kategori[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingKategori, setEditingKategori] = useState<Kategori | null>(null);
   const [formData, setFormData] = useState({
@@ -113,11 +114,28 @@ export default function MasterKategoriPage() {
   }
 
   async function handleSubmit() {
+    if (submitting) return;
+
     if (!formData.nama_kategori.trim()) {
       toast.error('Nama kategori wajib diisi');
       return;
     }
 
+    const normalizedName = formData.nama_kategori.trim().toLowerCase();
+    const hasDuplicateName = kategoris.some((kategori) => {
+      const existingName = kategori.nama_kategori.trim().toLowerCase();
+      if (editingKategori) {
+        return kategori.id !== editingKategori.id && existingName === normalizedName;
+      }
+      return existingName === normalizedName;
+    });
+
+    if (hasDuplicateName) {
+      toast.error('Nama kategori sudah ada di daftar');
+      return;
+    }
+
+    setSubmitting(true);
     try {
       if (editingKategori) {
         const { error } = await supabase
@@ -151,9 +169,11 @@ export default function MasterKategoriPage() {
       }
 
       setDialogOpen(false);
-      fetchKategoris();
+      await fetchKategoris();
     } catch (error: unknown) {
       toast.error('Terjadi kesalahan: ' + getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -262,13 +282,22 @@ export default function MasterKategoriPage() {
               <DialogFooter className="gap-2 sm:gap-0">
                 <Button
                   variant="ghost"
+                  disabled={submitting}
                   onClick={() => setDialogOpen(false)}
                   className="rounded-xl font-bold opacity-60 hover:opacity-100"
                 >
                   Batal
                 </Button>
-                <Button onClick={handleSubmit} className="bg-brand text-white font-bold rounded-xl px-8">
-                  {editingKategori ? 'Simpan Perubahan' : 'Buat Kategori'}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="bg-brand text-white font-bold rounded-xl px-8"
+                >
+                  {submitting
+                    ? 'Menyimpan...'
+                    : editingKategori
+                      ? 'Simpan Perubahan'
+                      : 'Buat Kategori'}
                 </Button>
               </DialogFooter>
             </DialogContent>

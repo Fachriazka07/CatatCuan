@@ -12,18 +12,19 @@ class ProductListPage extends StatefulWidget {
   State<ProductListPage> createState() => _ProductListPageState();
 }
 
-class _ProductListPageState extends State<ProductListPage> with TickerProviderStateMixin {
+class _ProductListPageState extends State<ProductListPage>
+    with TickerProviderStateMixin {
   final _cache = DataCacheService.instance;
   bool isLoading = false;
   List<Map<String, dynamic>> products = [];
   List<Map<String, dynamic>> filteredProducts = [];
   Map<String, List<Map<String, dynamic>>> groupedProducts = {};
-  
+
   String _selectedCategoryFilter = 'Semua Kategori';
   List<String> _availableCategories = ['Semua Kategori'];
   int _maxCategoriesShown = 3;
   int _maxItemsPerCategory = 10;
-  
+
   final TextEditingController _searchController = TextEditingController();
 
   // Low stock warning
@@ -32,12 +33,20 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   List<Map<String, dynamic>> _lowStockProducts = [];
 
   static const Set<String> _validIcons = {
-    'BumbuDapur.png', 'Cemilan.png', 'Lainya.png', 'Minuman.png',
-    'Obat.png', 'PerlengkapanMandi.png', 'Rokok.png', 'Sembako.png',
+    'BumbuDapur.png',
+    'Cemilan.png',
+    'Lainya.png',
+    'Minuman.png',
+    'Obat.png',
+    'PerlengkapanMandi.png',
+    'Rokok.png',
+    'Sembako.png',
   };
 
   String _resolveIconPath(String? iconName) {
-    if (iconName == null || iconName.isEmpty || !_validIcons.contains(iconName)) {
+    if (iconName == null ||
+        iconName.isEmpty ||
+        !_validIcons.contains(iconName)) {
       return 'assets/icon/produk-icon/Lainya.png';
     }
     return 'assets/icon/produk-icon/$iconName';
@@ -64,10 +73,13 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   /// Load products from cache — instant, no network call.
   void _loadFromCache() {
     products = List<Map<String, dynamic>>.from(_cache.products);
-    
+
     _availableCategories = ['Semua Kategori'];
     for (var p in products) {
-      final catName = ((p['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['nama_kategori'] as String? ?? 'Lainnya');
+      final catName =
+          ((p['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['nama_kategori']
+              as String? ??
+          'Lainnya');
       if (!_availableCategories.contains(catName)) {
         _availableCategories.add(catName);
       }
@@ -79,8 +91,6 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
       return stock < _lowStockThreshold;
     }).toList();
 
-
-    
     _filterProducts();
   }
 
@@ -99,28 +109,43 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
 
   void _filterProducts() {
     final query = _searchController.text.toLowerCase();
-    
+
     final filteredList = products.where((product) {
       final name = (product['nama_produk'] ?? '').toString().toLowerCase();
       final barcode = (product['barcode'] ?? '').toString().toLowerCase();
-      final category = ((product['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['nama_kategori'] as String? ?? 'Lainnya').toLowerCase();
-      
-      final bool matchesQuery = name.contains(query) || barcode.contains(query) || category.contains(query);
-      final bool matchesCategory = _selectedCategoryFilter == 'Semua Kategori' || category == _selectedCategoryFilter.toLowerCase();
-      
+      final category =
+          ((product['KATEGORI_PRODUK']
+                          as Map<String, dynamic>?)?['nama_kategori']
+                      as String? ??
+                  'Lainnya')
+              .toLowerCase();
+
+      final bool matchesQuery =
+          name.contains(query) ||
+          barcode.contains(query) ||
+          category.contains(query);
+      final bool matchesCategory =
+          _selectedCategoryFilter == 'Semua Kategori' ||
+          category == _selectedCategoryFilter.toLowerCase();
+
       return matchesQuery && matchesCategory;
     }).toList();
-    
+
     // Group them
     final Map<String, List<Map<String, dynamic>>> newGrouped = {};
     for (var product in filteredList) {
-      final categoryName = ((product['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['nama_kategori'] as String? ?? 'Lainnya').toUpperCase();
+      final categoryName =
+          ((product['KATEGORI_PRODUK']
+                          as Map<String, dynamic>?)?['nama_kategori']
+                      as String? ??
+                  'Lainnya')
+              .toUpperCase();
       if (!newGrouped.containsKey(categoryName)) {
         newGrouped[categoryName] = [];
       }
       newGrouped[categoryName]!.add(product);
     }
-    
+
     setState(() {
       filteredProducts = filteredList;
       groupedProducts = newGrouped;
@@ -128,7 +153,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   }
 
   void _showLowStockPopup() {
-    showDialog<void>(
+    showDialog(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -147,7 +172,11 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                       color: Color(0xFFFEE2E2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 28),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFDC2626),
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -179,14 +208,17 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
               ),
               const SizedBox(height: 24),
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.4,
+                ),
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _lowStockProducts.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, index) {
                     final p = _lowStockProducts[index];
-                    final name = (p['nama_produk'] as String? ?? 'Produk').toUpperCase();
+                    final name = (p['nama_produk'] as String? ?? 'Produk')
+                        .toUpperCase();
                     final stock = (p['stok_saat_ini'] as num?)?.toInt() ?? 0;
                     final satuan = (p['satuan'] as String?) ?? 'PCS';
 
@@ -228,7 +260,9 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontFamily: 'Poppins',
-                                        color: stock == 0 ? const Color(0xFFDC2626) : const Color(0xFFFF6B00),
+                                        color: stock == 0
+                                            ? const Color(0xFFDC2626)
+                                            : const Color(0xFFFF6B00),
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -239,7 +273,10 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                           ),
                           if (stock == 0)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFEE2E2),
                                 borderRadius: BorderRadius.circular(8),
@@ -267,7 +304,9 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                   onPressed: () => Navigator.pop(ctx),
                   style: TextButton.styleFrom(
                     backgroundColor: const Color(0xFFDC2626),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text(
@@ -289,15 +328,20 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   }
 
   String _formatCurrency(num value) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(value);
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(value);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white background based on typical app use
+      backgroundColor: const Color(
+        0xFFF8F9FA,
+      ), // Slightly off-white background based on typical app use
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
             _buildHeader(),
@@ -309,8 +353,8 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : filteredProducts.isEmpty
-                        ? _buildEmptyState()
-                        : _buildProductList(),
+                    ? _buildEmptyState()
+                    : _buildProductList(),
               ),
             ),
           ],
@@ -331,7 +375,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
   }
 
   void _showAddOptions() {
-    showModalBottomSheet<void>(
+    showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
@@ -372,16 +416,19 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
             _buildOptionTile(
               onTap: () async {
                 Navigator.pop(ctx); // Close bottom sheet FIRST
-                
+
                 final res = await BarcodeHelper.scanOnce(
                   context,
                   appBarTitle: 'Scan Barcode Produk',
                 );
-                
+
                 if (!mounted) return;
-                
+
                 if (res != null && res != '-1' && res.isNotEmpty) {
-                  final result = await context.push('/produk/add', extra: {'barcode': res});
+                  final result = await context.push(
+                    '/produk/add',
+                    extra: {'barcode': res},
+                  );
                   if (result == true) {
                     await _cache.refreshProducts();
                     _loadFromCache();
@@ -503,7 +550,11 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                       shape: BoxShape.circle,
                       color: Colors.white,
                     ),
-                    child: const Icon(Icons.close, color: Colors.black, size: 24),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.black,
+                      size: 24,
+                    ),
                   ),
                 ),
               ],
@@ -533,7 +584,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
           Expanded(
             child: SizedBox(
               height: 44,
-              child: TextField( 
+              child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Ketik Nama Produk.....',
@@ -545,18 +596,30 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                   filled: true,
                   fillColor: Colors.white,
                   suffixIcon: const Icon(Icons.search, color: Colors.grey),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFF13B158), width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF13B158),
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -570,9 +633,9 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                 context,
                 appBarTitle: 'Scan Barcode Produk',
               );
-              
+
               if (!mounted) return;
-              
+
               if (res != null && res != '-1' && res.isNotEmpty) {
                 _searchController.text = res;
               }
@@ -584,7 +647,11 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                 color: const Color(0xFF1A237E),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.qr_code_scanner,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -593,7 +660,10 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
             onTap: _lowStockProducts.isNotEmpty ? _showLowStockPopup : null,
             child: FadeTransition(
               opacity: _lowStockProducts.isNotEmpty
-                  ? Tween<double>(begin: 0.3, end: 1.0).animate(_blinkController)
+                  ? Tween<double>(
+                      begin: 0.3,
+                      end: 1.0,
+                    ).animate(_blinkController)
                   : const AlwaysStoppedAnimation(0.4),
               child: Stack(
                 clipBehavior: Clip.none,
@@ -602,10 +672,16 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: _lowStockProducts.isNotEmpty ? Colors.red : Colors.grey,
+                      color: _lowStockProducts.isNotEmpty
+                          ? Colors.red
+                          : Colors.grey,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.error_outline, color: Colors.white, size: 22),
+                    child: const Icon(
+                      Icons.error_outline,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                   if (_lowStockProducts.isNotEmpty)
                     Positioned(
@@ -617,7 +693,10 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                           color: Color(0xFFFF6B00),
                           shape: BoxShape.circle,
                         ),
-                        constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
                         child: Center(
                           child: Text(
                             '${_lowStockProducts.length}',
@@ -653,7 +732,11 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategoryFilter,
-          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primary, size: 24),
+          icon: const Icon(
+            Icons.arrow_drop_down,
+            color: AppTheme.primary,
+            size: 24,
+          ),
           isExpanded: true,
           style: const TextStyle(
             color: AppTheme.primary,
@@ -671,11 +754,10 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
               });
             }
           },
-          items: _availableCategories.map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
+          items: _availableCategories.map<DropdownMenuItem<String>>((
+            String value,
+          ) {
+            return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
         ),
       ),
@@ -713,7 +795,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
     final categoryKeys = groupedProducts.keys.toList();
     // Sort keys alphabetically
     categoryKeys.sort();
-    
+
     // Sort items inside each category by name
     for (var key in categoryKeys) {
       groupedProducts[key]!.sort((a, b) {
@@ -723,24 +805,33 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
       });
     }
 
-    final int catsToShow = (_maxCategoriesShown < categoryKeys.length) ? _maxCategoriesShown : categoryKeys.length;
-    
+    final int catsToShow = (_maxCategoriesShown < categoryKeys.length)
+        ? _maxCategoriesShown
+        : categoryKeys.length;
+
     bool hasMore = false;
     if (categoryKeys.length > _maxCategoriesShown) hasMore = true;
 
     final List<Widget> listWidgets = [];
-    
+
     for (int i = 0; i < catsToShow; i++) {
       final catName = categoryKeys[i];
       final items = groupedProducts[catName]!;
-      
+
       if (items.length > _maxItemsPerCategory) hasMore = true;
-      
-      final itemsToShow = (items.length > _maxItemsPerCategory) ? _maxItemsPerCategory : items.length;
-      
+
+      final itemsToShow = (items.length > _maxItemsPerCategory)
+          ? _maxItemsPerCategory
+          : items.length;
+
       listWidgets.add(
         Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: 8,
+          ),
           child: Text(
             catName,
             style: const TextStyle(
@@ -752,15 +843,17 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
           ),
         ),
       );
-      
+
       final List<Widget> cardItems = [];
       for (int j = 0; j < itemsToShow; j++) {
         cardItems.add(_buildProductCardContent(items[j]));
         if (j < itemsToShow - 1) {
-          cardItems.add(const Divider(height: 1, thickness: 1, color: Color(0xFFD1EDD8)));
+          cardItems.add(
+            const Divider(height: 1, thickness: 1, color: Color(0xFFD1EDD8)),
+          );
         }
       }
-      
+
       listWidgets.add(
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -769,13 +862,11 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
           ),
-          child: Column(
-            children: cardItems,
-          ),
-        )
+          child: Column(children: cardItems),
+        ),
       );
     }
-    
+
     if (hasMore) {
       listWidgets.add(
         Padding(
@@ -817,20 +908,22 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
         ),
       );
     }
-    
+
     listWidgets.add(const SizedBox(height: 100));
 
-    return ListView(
-      children: listWidgets,
-    );
+    return ListView(children: listWidgets);
   }
 
   Widget _buildProductCardContent(Map<String, dynamic> product) {
     final satuan = (product['satuan'] as String?) ?? 'PCS';
     final stok = product['stok_saat_ini'] ?? 0;
-    final nama = (product['nama_produk'] as String? ?? 'NAMA PRODUK').toUpperCase();
-    
-    final String iconName = (product['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['icon'] as String? ?? 'Lainya.png';
+    final nama = (product['nama_produk'] as String? ?? 'NAMA PRODUK')
+        .toUpperCase();
+
+    final String iconName =
+        (product['KATEGORI_PRODUK'] as Map<String, dynamic>?)?['icon']
+            as String? ??
+        'Lainya.png';
     final String iconPath = _resolveIconPath(iconName);
 
     return InkWell(
@@ -843,7 +936,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
         }
       },
       child: Container(
-        height: 70, 
+        height: 70,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         color: Colors.transparent,
         child: Row(
@@ -863,14 +956,17 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                     border: Border.all(color: const Color(0xFFD1EDD8)),
                   ),
                   padding: const EdgeInsets.all(8.0),
-                  child: Image.asset(iconPath, fit: BoxFit.contain), 
+                  child: Image.asset(iconPath, fit: BoxFit.contain),
                 ),
                 if ((stok as num).toInt() < _lowStockThreshold)
                   Positioned(
                     top: -4,
                     right: -4,
                     child: FadeTransition(
-                      opacity: Tween<double>(begin: 0.2, end: 1.0).animate(_blinkController),
+                      opacity: Tween<double>(
+                        begin: 0.2,
+                        end: 1.0,
+                      ).animate(_blinkController),
                       child: Container(
                         width: 18,
                         height: 18,
@@ -878,14 +974,18 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                           color: Colors.red,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.priority_high, color: Colors.white, size: 12),
+                        child: const Icon(
+                          Icons.priority_high,
+                          color: Colors.white,
+                          size: 12,
+                        ),
                       ),
                     ),
                   ),
               ],
             ),
             const SizedBox(width: 10),
-            
+
             // Texts
             Expanded(
               child: Column(
@@ -936,7 +1036,7 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
                 ],
               ),
             ),
-            
+
             // Price aligned to top right
             Column(
               mainAxisAlignment: MainAxisAlignment.start,
@@ -961,4 +1061,3 @@ class _ProductListPageState extends State<ProductListPage> with TickerProviderSt
     );
   }
 }
-

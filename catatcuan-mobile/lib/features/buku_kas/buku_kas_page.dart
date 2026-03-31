@@ -15,7 +15,7 @@ class BukuKasPage extends StatefulWidget {
 class _BukuKasPageState extends State<BukuKasPage> {
   final _supabase = Supabase.instance.client;
   final _cache = DataCacheService.instance;
-  
+
   bool isLoading = false;
   List<Map<String, dynamic>> bukuKasItems = [];
   int _limit = 20;
@@ -32,9 +32,9 @@ class _BukuKasPageState extends State<BukuKasPage> {
 
   Future<void> _fetchData({bool loadMore = false}) async {
     if (isLoading) return;
-    
+
     setState(() => isLoading = true);
-    
+
     try {
       if (!loadMore) {
         _limit = 20;
@@ -50,20 +50,22 @@ class _BukuKasPageState extends State<BukuKasPage> {
           .eq('warung_id', warungId);
 
       if (_startDate != null) {
-        query = query.gte('tanggal', _startDate!.toUtc().toIso8601String());
+        query = query.gte('tanggal', _startDate!.toIso8601String());
       }
       if (_endDate != null) {
         // To include the whole end date, we add 1 day or use the end of the day
         final nextDay = _endDate!.add(const Duration(days: 1));
-        query = query.lt('tanggal', nextDay.toUtc().toIso8601String());
+        query = query.lt('tanggal', nextDay.toIso8601String());
       }
 
       final response = await query
           .order('tanggal', ascending: false)
           .limit(_limit);
 
-      final List<Map<String, dynamic>> data = List<Map<String, dynamic>>.from(response);
-      
+      final List<Map<String, dynamic>> data = List<Map<String, dynamic>>.from(
+        response,
+      );
+
       setState(() {
         bukuKasItems = data;
         _hasMore = data.length >= _limit;
@@ -87,7 +89,7 @@ class _BukuKasPageState extends State<BukuKasPage> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppTheme.primary,
               onPrimary: Colors.white,
               onSurface: Colors.black,
@@ -107,8 +109,15 @@ class _BukuKasPageState extends State<BukuKasPage> {
     }
   }
 
-  String _formatCurrency(num value) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(value);
+  String _formatCurrency(Object? value) {
+    final number = value is num
+        ? value
+        : num.tryParse(value?.toString() ?? '') ?? 0;
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(number);
   }
 
   String _formatDate(String dateStr) {
@@ -116,10 +125,23 @@ class _BukuKasPageState extends State<BukuKasPage> {
     return DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(date);
   }
 
+  String _readString(Map<String, dynamic> item, String key) {
+    final value = item[key];
+    return value?.toString() ?? '';
+  }
+
+  double _readDouble(Map<String, dynamic> item, String key) {
+    final value = item[key];
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
   Map<String, List<Map<String, dynamic>>> _groupItemsByDate() {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
     for (var item in bukuKasItems) {
-      final dateKey = _formatDate(item['tanggal']);
+      final dateKey = _formatDate(_readString(item, 'tanggal'));
       if (!grouped.containsKey(dateKey)) {
         grouped[dateKey] = [];
       }
@@ -132,6 +154,7 @@ class _BukuKasPageState extends State<BukuKasPage> {
   Widget build(BuildContext context) {
     final totalUangWarung = _cache.saldoAwal + _cache.uangKas;
     final groupedItems = _groupItemsByDate();
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -139,7 +162,7 @@ class _BukuKasPageState extends State<BukuKasPage> {
         top: false,
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(statusBarHeight),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () => _fetchData(),
@@ -154,10 +177,10 @@ class _BukuKasPageState extends State<BukuKasPage> {
                       _buildEmptyState()
                     else
                       ..._buildGroupedList(groupedItems),
-                    
+
                     if (_hasMore && bukuKasItems.isNotEmpty)
                       _buildLoadMoreButton(),
-                    
+
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -170,10 +193,10 @@ class _BukuKasPageState extends State<BukuKasPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double statusBarHeight) {
     return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: statusBarHeight + 88,
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 12, 16, 16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -181,36 +204,32 @@ class _BukuKasPageState extends State<BukuKasPage> {
           colors: [Color(0xFF13B158), Color(0xFF3A9B6B)],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Buku Kas',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                    child: const Icon(Icons.close, color: Colors.black, size: 24),
-                  ),
-                ),
-              ],
+          const Text(
+            'Buku Kas',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: const Icon(
+                Icons.close,
+                color: Colors.black,
+                size: 24,
+              ),
             ),
           ),
         ],
@@ -235,7 +254,8 @@ class _BukuKasPageState extends State<BukuKasPage> {
   Widget _buildFilterButton() {
     String label = 'Filter Tanggal';
     if (_startDate != null && _endDate != null) {
-      label = '${DateFormat('dd/MM/yy').format(_startDate!)} - ${DateFormat('dd/MM/yy').format(_endDate!)}';
+      label =
+          '${DateFormat('dd/MM/yy').format(_startDate!)} - ${DateFormat('dd/MM/yy').format(_endDate!)}';
     }
 
     return InkWell(
@@ -342,18 +362,33 @@ class _BukuKasPageState extends State<BukuKasPage> {
         // Sub-Summary Row
         Row(
           children: [
-            _buildSubSummaryCard('JUMLAH UANG LACI', _cache.saldoAwal, isLeft: true),
-            _buildSubSummaryCard('JUMLAH UANG KAS', _cache.uangKas, isLeft: false),
+            _buildSubSummaryCard(
+              'JUMLAH UANG LACI',
+              _cache.saldoAwal,
+              isLeft: true,
+            ),
+            _buildSubSummaryCard(
+              'JUMLAH UANG KAS',
+              _cache.uangKas,
+              isLeft: false,
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildSubSummaryCard(String title, double amount, {required bool isLeft}) {
+  Widget _buildSubSummaryCard(
+    String title,
+    double amount, {
+    required bool isLeft,
+  }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), // Increased from 12
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 20,
+        ), // Increased from 12
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
@@ -386,7 +421,7 @@ class _BukuKasPageState extends State<BukuKasPage> {
     final parts = _formatCurrency(amount).split(' ');
     final symbol = parts[0];
     final value = parts.sublist(1).join(' ');
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -413,10 +448,12 @@ class _BukuKasPageState extends State<BukuKasPage> {
     );
   }
 
-  List<Widget> _buildGroupedList(Map<String, List<Map<String, dynamic>>> groupedItems) {
+  List<Widget> _buildGroupedList(
+    Map<String, List<Map<String, dynamic>>> groupedItems,
+  ) {
     final List<Widget> widgets = [];
     final sortedDates = groupedItems.keys.toList();
-    
+
     for (var date in sortedDates) {
       widgets.add(
         Padding(
@@ -457,7 +494,11 @@ class _BukuKasPageState extends State<BukuKasPage> {
                 children: [
                   _buildHistoryItem(item),
                   if (!isLast)
-                    const Divider(height: 1, thickness: 1, color: Color(0xFFD1EDD8)),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFD1EDD8),
+                    ),
                 ],
               );
             }),
@@ -469,14 +510,14 @@ class _BukuKasPageState extends State<BukuKasPage> {
   }
 
   Widget _buildHistoryItem(Map<String, dynamic> item) {
-    final type = (item['tipe'] as String).toLowerCase();
-    final source = item['sumber'] as String;
-    final amount = (item['amount'] as num).toDouble();
+    final type = _readString(item, 'tipe').toLowerCase();
+    final source = _readString(item, 'sumber');
+    final amount = _readDouble(item, 'amount');
     final isMasuk = type == 'masuk';
-    
+
     // Label formatting
     String title = source.replaceAll('_', ' ').toUpperCase();
-    final String keterangan = item['keterangan'] ?? '';
+    final String keterangan = _readString(item, 'keterangan');
 
     if (source == 'saldo_awal') {
       title = 'SALDO AWAL';
@@ -489,7 +530,7 @@ class _BukuKasPageState extends State<BukuKasPage> {
     if (source == 'manual_keluar') title = 'UANG KELUAR';
     if (source == 'transfer') title = 'TRANSFER SALDO';
     if (source == 'adjustment') title = 'PENYESUAIAN SALDO';
-    
+
     if (source == 'penjualan') title = 'TRANSAKSI PENJUALAN';
     if (source == 'pengeluaran') title = 'PENGELUARAN';
     if (source == 'hutang_bayar') title = 'PEMBAYARAN HUTANG';
@@ -539,9 +580,9 @@ class _BukuKasPageState extends State<BukuKasPage> {
                       fontFamily: 'Poppins',
                     ),
                   ),
-                  if (item['keterangan'] != null)
+                  if (keterangan.isNotEmpty)
                     Text(
-                      item['keterangan'],
+                      keterangan,
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF9CA3AF),
@@ -574,7 +615,11 @@ class _BukuKasPageState extends State<BukuKasPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 40),
-          Icon(Icons.history, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
+          Icon(
+            Icons.history,
+            size: 80,
+            color: Colors.grey.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Belum ada riwayat kas',
@@ -689,7 +734,9 @@ class _BukuKasPageState extends State<BukuKasPage> {
                     title: 'UANG KELUAR',
                     onTap: () async {
                       Navigator.pop(ctx);
-                      final result = await context.push('/buku-kas/uang-keluar');
+                      final result = await context.push(
+                        '/buku-kas/uang-keluar',
+                      );
                       if (result == true) _fetchData();
                     },
                   ),
@@ -721,13 +768,19 @@ class _BukuKasPageState extends State<BukuKasPage> {
     );
   }
 
-  Widget _buildPopupSectionTitle(String title, {required bool isOpen, required VoidCallback onTap}) {
+  Widget _buildPopupSectionTitle(
+    String title, {
+    required bool isOpen,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 0.5)),
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade200, width: 0.5),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -752,7 +805,11 @@ class _BukuKasPageState extends State<BukuKasPage> {
     );
   }
 
-  Widget _buildPopupItem({required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _buildPopupItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Container(

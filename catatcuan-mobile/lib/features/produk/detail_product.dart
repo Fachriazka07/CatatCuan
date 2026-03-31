@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
+import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -74,8 +75,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
       num.parse((widget.product['harga_jual'] ?? 0).toString()).toInt(),
     );
     
-    final stok = num.parse((widget.product['stok_saat_ini'] ?? 0).toString()).toInt();
-    _stokController.text = stok.toString();
+    final stok = ProductStockHelper.parseStock(widget.product['stok_saat_ini']);
+    _tanpaStok = ProductStockHelper.isUnlimited(stok);
+    _stokController.text = _tanpaStok ? '' : stok.toString();
     
     _selectedKategoriId = widget.product['kategori_id'] as String?;
     _selectedSatuan = widget.product['satuan'] as String?;
@@ -125,6 +127,22 @@ class _DetailProductPageState extends State<DetailProductPage> {
 
     _categories = List<Map<String, dynamic>>.from(_cache.categories);
     _satuanItems = List<Map<String, dynamic>>.from(_cache.satuanItems);
+  }
+
+  Future<bool> _isBarcodeAlreadyUsedByOtherProduct(String barcode) async {
+    final normalized = barcode.trim();
+    if (normalized.isEmpty) return false;
+
+    final existing = await supabase
+        .from('PRODUK')
+        .select('id')
+        .eq('warung_id', widget.product['warung_id'] as Object)
+        .eq('barcode', normalized)
+        .neq('id', widget.product['id'] as Object)
+        .limit(1)
+        .maybeSingle();
+
+    return existing != null;
   }
 
   Future<void> _deleteProduct() async {
@@ -193,6 +211,16 @@ class _DetailProductPageState extends State<DetailProductPage> {
 
     setState(() => _isLoading = true);
     try {
+      if (await _isBarcodeAlreadyUsedByOtherProduct(_kodeProduk)) {
+        if (mounted) {
+          AppToast.showWarning(
+            context,
+            'Barcode sudah dipakai produk lain.',
+          );
+        }
+        return;
+      }
+
       final productData = {
         'kategori_id': _selectedKategoriId,
         'nama_produk': _namaController.text,
@@ -204,7 +232,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                 _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
             0,
         'stok_saat_ini':
-            _tanpaStok ? 0 : (int.tryParse(_stokController.text) ?? 0),
+            _tanpaStok
+                ? ProductStockHelper.unlimitedStockValue
+                : (int.tryParse(_stokController.text) ?? 0),
         'satuan': _selectedSatuan,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
@@ -635,7 +665,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
                       onChanged: (v) {
                         setState(() {
                           _tanpaStok = v ?? false;
-                          if (_tanpaStok) _stokController.text = '0';
+                          if (_tanpaStok) _stokController.clear();
                         });
                       },
                       activeColor: AppTheme.primary,

@@ -38,6 +38,10 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import {
+  formatShortDate,
+  formatShortMonthDay,
+} from '@/lib/admin-format';
 
 interface User {
   id: string;
@@ -276,7 +280,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                               </TableCell>
                               <TableCell className="py-4">
                                 <span className="text-xs font-medium text-muted-foreground/60">
-                                  {new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  {formatShortDate(user.created_at)}
                                 </span>
                               </TableCell>
                               <TableCell className="py-4">
@@ -284,7 +288,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Terakhir Login</span>
                                   <span className="text-xs font-medium">
                                     {user.last_login_at
-                                      ? new Date(user.last_login_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+                                      ? formatShortMonthDay(user.last_login_at)
                                       : 'Belum pernah'}
                                   </span>
                                 </div>
@@ -373,7 +377,7 @@ export default function UserSearch({ users, warungs }: UserSearchProps) {
                               </TableCell>
                               <TableCell className="py-4">
                                 <span className="text-xs font-medium text-muted-foreground/60">
-                                  {new Date(warung.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                  {formatShortMonthDay(warung.created_at)}
                                 </span>
                               </TableCell>
                             </motion.tr>

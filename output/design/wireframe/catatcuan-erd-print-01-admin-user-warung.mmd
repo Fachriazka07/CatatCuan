@@ -1,0 +1,83 @@
+erDiagram
+    direction LR
+
+    ADMIN_USERS {
+        uuid id PK
+        text email UK
+        admin_role role
+        timestamptz created_at
+    }
+
+    APP_CONFIG {
+        uuid id PK
+        text key UK
+        uuid updated_by FK
+        timestamptz updated_at
+    }
+
+    SYSTEM_LOGS {
+        uuid id PK
+        uuid admin_id FK
+        text action
+        timestamptz created_at
+    }
+
+    USERS {
+        uuid id PK
+        text phone_number UK
+        user_status status
+        timestamptz created_at
+    }
+
+    MOBILE_DEVICE_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        text device_token UK
+        text platform
+        boolean is_active
+        timestamptz last_seen_at
+    }
+
+    USER_NOTIFICATION_PREFERENCES {
+        uuid user_id PK
+        boolean push_enabled
+        boolean sms_enabled
+        boolean due_date_reminder
+        boolean low_stock_alert
+        boolean daily_reminder
+    }
+
+    PASSWORD_RESET_OTPS {
+        uuid id PK
+        uuid user_id FK
+        text phone_number
+        timestamptz expires_at
+        timestamptz used_at
+    }
+
+    WARUNG {
+        uuid id PK
+        uuid user_id FK
+        text nama_warung
+        text nama_pemilik
+        decimal saldo_awal
+    }
+
+    NOTIFICATION_LOGS {
+        uuid id PK
+        uuid user_id FK
+        uuid warung_id FK
+        text channel
+        text notification_type
+        text status
+        timestamptz sent_at
+    }
+
+    ADMIN_USERS o|--o{ APP_CONFIG : updates
+    ADMIN_USERS o|--o{ SYSTEM_LOGS : writes
+    USERS ||--o{ MOBILE_DEVICE_TOKENS : uses
+    USERS ||--o| USER_NOTIFICATION_PREFERENCES : has
+    USERS ||--o{ PASSWORD_RESET_OTPS : requests
+    USERS ||--o{ WARUNG : owns
+    USERS o|--o{ NOTIFICATION_LOGS : receives
+    WARUNG o|--o{ NOTIFICATION_LOGS : sends_for

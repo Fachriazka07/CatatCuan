@@ -4,6 +4,7 @@ import { Activity, Clock, Shield, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { formatShortDateTime } from '@/lib/admin-format';
 
 interface LogEntry {
   id: string;
@@ -72,12 +73,7 @@ export function ActivityLog({ logs, className }: ActivityLogProps) {
                     </span>
                     <div className="flex items-center gap-1.5 text-[9px] font-medium text-muted-foreground/60">
                       <Clock className="h-2.5 w-2.5 opacity-50" />
-                      {new Date(log.created_at).toLocaleString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatShortDateTime(log.created_at)}
                     </div>
                   </div>
                 </motion.div>

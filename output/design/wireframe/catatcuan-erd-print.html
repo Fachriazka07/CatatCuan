@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERD CatatCuan</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 6mm;
+    }
+
+    :root {
+      --paper: #ffffff;
+      --ink: #111827;
+      --line: #d1d5db;
+      --soft: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #eef2f7;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      padding: 10px;
+    }
+
+    .sheet {
+      width: 100%;
+      max-width: 277mm;
+      min-height: 190mm;
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      padding: 8px 10px 4px;
+      overflow: hidden;
+    }
+
+    .titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      border-bottom: 1.5px solid #111827;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .meta {
+      margin: 0;
+      font-size: 9px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .diagram-wrap {
+      width: 100%;
+      height: calc(100% - 28px);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+
+    #diagram {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      transform-origin: top center;
+    }
+
+    #diagram svg {
+      width: 100%;
+      height: auto;
+      max-height: 178mm;
+      display: block;
+    }
+
+    @media print {
+      html,
+      body {
+        background: #ffffff;
+      }
+
+      body {
+        padding: 0;
+      }
+
+      .sheet {
+        max-width: none;
+        min-height: auto;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      .diagram-wrap {
+        overflow: visible;
+      }
+
+      #diagram svg {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <div class="titlebar">
+      <h1>ERD CatatCuan</h1>
+      <p class="meta">Generated from `catatcuan-admin/catatcuan_schema.sql`</p>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="mermaid" id="diagram">
+erDiagram
+    direction TB
+
+    ADMIN_USERS {
+        uuid id PK
+        text email UK
+        text password_hash
+        admin_role role
+        timestamptz created_at
+        timestamptz last_login_at
+    }
+
+    APP_CONFIG {
+        uuid id PK
+        text key UK
+        text value
+        text description
+        timestamptz updated_at
+        uuid updated_by FK
+    }
+
+    SYSTEM_LOGS {
+        uuid id PK
+        text action
+        uuid admin_id FK
+        jsonb details
+        timestamptz created_at
+    }
+
+    MASTER_KATEGORI_PRODUK {
+        uuid id PK
+        text nama_kategori
+        text icon
+        int sort_order
+        boolean is_active
+        timestamptz created_at
+    }
+
+    MASTER_SATUAN {
+        uuid id PK
+        text nama_satuan
+        int sort_order
+        boolean is_active
+        timestamptz created_at
+    }
+
+    USERS {
+        uuid id PK
+        text phone_number UK
+        text password_hash
+        user_status status
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz last_login_at
+    }
+
+    MOBILE_DEVICE_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        text device_token UK
+        text platform
+        text device_label
+        boolean is_active
+        timestamptz last_seen_at
+        text last_error
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    USER_NOTIFICATION_PREFERENCES {
+        uuid user_id PK
+        boolean push_enabled
+        boolean sms_enabled
+        boolean due_date_reminder
+        boolean low_stock_alert
+        boolean daily_reminder
+        timestamptz updated_at
+    }
+
+    PASSWORD_RESET_OTPS {
+        uuid id PK
+        uuid user_id FK
+        text phone_number
+        text code_hash
+        text channel
+        timestamptz expires_at
+        timestamptz used_at
+        int attempt_count
+        timestamptz sent_at
+        timestamptz created_at
+    }
+
+    WARUNG {
+        uuid id PK
+        uuid user_id FK
+        text nama_warung
+        text nama_pemilik
+        text alamat
+        text phone
+        decimal saldo_awal
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    NOTIFICATION_LOGS {
+        uuid id PK
+        uuid user_id FK
+        uuid warung_id FK
+        text channel
+        text notification_type
+        text title
+        text body
+        jsonb payload
+        text provider_message_id
+        text status
+        text error_message
+        timestamptz sent_at
+        timestamptz created_at
+    }
+
+    KATEGORI_PRODUK {
+        uuid id PK
+        uuid warung_id FK
+        text nama_kategori
+        text icon
+        int sort_order
+        uuid master_kategori_id FK
+        timestamptz created_at
+    }
+
+    SATUAN_PRODUK {
+        uuid id PK
+        uuid warung_id FK
+        text nama_satuan
+        int sort_order
+        uuid master_satuan_id FK
+        timestamptz created_at
+    }
+
+    PRODUK {
+        uuid id PK
+        uuid warung_id FK
+        uuid kategori_id FK
+        text nama_produk
+        text barcode
+        decimal harga_modal
+        decimal harga_jual
+        int stok_saat_ini
+        int stok_minimum
+        text satuan
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    PELANGGAN {
+        uuid id PK
+        uuid warung_id FK
+        text nama
+        text phone
+        text alamat
+        decimal total_hutang
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    PENJUALAN {
+        uuid id PK
+        uuid warung_id FK
+        uuid pelanggan_id FK
+        text invoice_no
+        timestamptz tanggal
+        decimal total_amount
+        decimal amount_paid
+        decimal amount_change
+        payment_method payment_method
+        transaction_status status
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+        decimal profit
+    }
+
+    PENJUALAN_ITEM {
+        uuid id PK
+        uuid penjualan_id FK
+        uuid produk_id FK
+        text nama_produk
+        int quantity
+        decimal harga_satuan
+        decimal subtotal
+        timestamptz created_at
+        decimal harga_modal
+    }
+
+    KATEGORI_PENGELUARAN {
+        uuid id PK
+        uuid warung_id FK
+        text nama_kategori
+        expense_category_type tipe
+        boolean is_system
+    }
+
+    PENGELUARAN {
+        uuid id PK
+        uuid warung_id FK
+        uuid kategori_id FK
+        timestamptz tanggal
+        decimal amount
+        text keterangan
+        text bukti_foto
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    HUTANG {
+        uuid id PK
+        uuid warung_id FK
+        uuid pelanggan_id FK
+        uuid penjualan_id FK
+        text catatan
+        decimal amount_awal
+        decimal amount_terbayar
+        decimal amount_sisa
+        date tanggal_jatuh_tempo
+        debt_status status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    PEMBAYARAN_HUTANG {
+        uuid id PK
+        uuid hutang_id FK
+        timestamptz tanggal
+        decimal amount
+        payment_method_debt metode_bayar
+        text notes
+        timestamptz created_at
+    }
+
+    BUKU_KAS {
+        uuid id PK
+        uuid warung_id FK
+        timestamptz tanggal
+        cash_flow_type tipe
+        cash_flow_source sumber
+        uuid reference_id
+        text reference_type
+        decimal amount
+        decimal saldo_setelah
+        text keterangan
+        timestamptz created_at
+    }
+
+    LAPORAN_HARIAN {
+        uuid id PK
+        uuid warung_id FK
+        date tanggal
+        decimal total_penjualan
+        decimal total_pengeluaran_bisnis
+        decimal total_pengeluaran_pribadi
+        decimal total_hutang_baru
+        decimal total_hutang_terbayar
+        decimal profit
+        int jumlah_transaksi
+        timestamptz calculated_at
+    }
+
+    ADMIN_USERS o|--o{ APP_CONFIG : updates
+    ADMIN_USERS o|--o{ SYSTEM_LOGS : writes
+
+    USERS ||--o{ MOBILE_DEVICE_TOKENS : uses
+    USERS ||--o| USER_NOTIFICATION_PREFERENCES : has
+    USERS ||--o{ PASSWORD_RESET_OTPS : requests
+    USERS ||--o{ WARUNG : owns
+    USERS o|--o{ NOTIFICATION_LOGS : receives
+    WARUNG o|--o{ NOTIFICATION_LOGS : sends_for
+
+    MASTER_KATEGORI_PRODUK o|--o{ KATEGORI_PRODUK : templates
+    MASTER_SATUAN o|--o{ SATUAN_PRODUK : templates
+
+    WARUNG ||--o{ KATEGORI_PRODUK : has
+    WARUNG ||--o{ SATUAN_PRODUK : has
+    WARUNG ||--o{ PRODUK : has
+    KATEGORI_PRODUK o|--o{ PRODUK : categorizes
+
+    WARUNG ||--o{ PELANGGAN : has
+
+    WARUNG ||--o{ PENJUALAN : records
+    PELANGGAN o|--o{ PENJUALAN : makes
+    PENJUALAN ||--|{ PENJUALAN_ITEM : contains
+    PRODUK ||--o{ PENJUALAN_ITEM : sold_as
+
+    WARUNG ||--o{ KATEGORI_PENGELUARAN : has
+    WARUNG ||--o{ PENGELUARAN : records
+    KATEGORI_PENGELUARAN ||--o{ PENGELUARAN : categorizes
+
+    WARUNG ||--o{ HUTANG : records
+    PELANGGAN ||--o{ HUTANG : owes
+    PENJUALAN o|--o| HUTANG : originates
+    HUTANG ||--o{ PEMBAYARAN_HUTANG : paid_by
+
+    WARUNG ||--o{ BUKU_KAS : tracks
+    WARUNG ||--o{ LAPORAN_HARIAN : summarizes
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: "loose",
+      theme: "base",
+      er: {
+        useMaxWidth: true,
+      },
+      themeVariables: {
+        background: "#ffffff",
+        mainBkg: "#f8fbff",
+        secondBkg: "#eef4fb",
+        tertiaryColor: "#f9fafb",
+        primaryColor: "#eef4fb",
+        primaryTextColor: "#111827",
+        primaryBorderColor: "#6b7280",
+        lineColor: "#4b5563",
+        textColor: "#111827",
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontSize: "11px",
+      },
+    });
+  </script>
+</body>
+</html>

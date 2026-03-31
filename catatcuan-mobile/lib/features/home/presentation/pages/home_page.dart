@@ -5,6 +5,7 @@ import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
+import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -97,11 +98,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final alerts =
         _cache.products
             .where((product) {
-              final stock = (product['stok_saat_ini'] as num?)?.toInt() ?? 0;
-              return stock < _lowStockThreshold;
+              return ProductStockHelper.isLowStock(
+                product['stok_saat_ini'],
+                threshold: _lowStockThreshold,
+              );
             })
             .map((product) {
-              final stock = (product['stok_saat_ini'] as num?)?.toInt() ?? 0;
+              final stock = ProductStockHelper.parseStock(product['stok_saat_ini']);
               final satuan = (product['satuan'] as String?) ?? 'PCS';
               final productName =
                   (product['nama_produk'] as String?) ?? 'Produk';
@@ -129,131 +132,137 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: FractionallySizedBox(
+          heightFactor: 0.82,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Notifikasi',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1F2937),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (stockAlerts.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Text(
-                  'Belum ada notifikasi untuk stok produk.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: const Color(0xFF64748B),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              )
-            else
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                const SizedBox(height: 20),
+                Text(
+                  'Notifikasi',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1F2937),
+                  ),
                 ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: stockAlerts.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, index) {
-                    final alert = stockAlerts[index];
-                    final stock = alert['stock'] as int? ?? 0;
-                    final isOutOfStock = stock == 0;
+                const SizedBox(height: 16),
+                if (stockAlerts.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      'Belum ada notifikasi untuk stok produk.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: stockAlerts.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (_, index) {
+                        final alert = stockAlerts[index];
+                        final stock = alert['stock'] as int? ?? 0;
+                        final isOutOfStock = stock == 0;
 
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isOutOfStock
-                              ? const Color(0xFFFECACA)
-                              : const Color(0xFFFDE68A),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
                               color: isOutOfStock
-                                  ? const Color(0xFFFEE2E2)
-                                  : const Color(0xFFFFF7D6),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              isOutOfStock
-                                  ? Icons.error_outline
-                                  : Icons.warning_amber_rounded,
-                              color: isOutOfStock
-                                  ? const Color(0xFFDC2626)
-                                  : const Color(0xFFD97706),
+                                  ? const Color(0xFFFECACA)
+                                  : const Color(0xFFFDE68A),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  alert['name'] as String? ?? 'Produk',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF1F2937),
-                                  ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: isOutOfStock
+                                      ? const Color(0xFFFEE2E2)
+                                      : const Color(0xFFFFF7D6),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  alert['message'] as String? ?? '',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    height: 1.5,
-                                    color: const Color(0xFF4B5563),
-                                  ),
+                                child: Icon(
+                                  isOutOfStock
+                                      ? Icons.error_outline
+                                      : Icons.warning_amber_rounded,
+                                  color: isOutOfStock
+                                      ? const Color(0xFFDC2626)
+                                      : const Color(0xFFD97706),
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      alert['name'] as String? ?? 'Produk',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF1F2937),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      alert['message'] as String? ?? '',
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        height: 1.5,
+                                        color: const Color(0xFF4B5563),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-          ],
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );

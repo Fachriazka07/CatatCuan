@@ -348,31 +348,36 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: Column(
-                children: [
-                  _buildFormCard(),
-                  const SizedBox(height: 32),
-                  _buildSaveButton(),
-                ],
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            _buildHeader(statusBarHeight),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                child: Column(
+                  children: [
+                    _buildFormCard(),
+                    const SizedBox(height: 32),
+                    _buildSaveButton(),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double statusBarHeight) {
     return Container(
-      height: 120,
+      height: statusBarHeight + 92,
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -381,19 +386,22 @@ class _InsertHutangPageState extends State<InsertHutangPage> {
           colors: [Color(0xFF13B158), Color(0xFF3A9B6B)],
         ),
       ),
-      padding: const EdgeInsets.only(top: 50, left: 16, right: 16),
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 12, 16, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Tambah Hutang / Piutang',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Poppins',
+          const Expanded(
+            child: Text(
+              'Tambah Hutang / Piutang',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: _closePage,
             child: Container(

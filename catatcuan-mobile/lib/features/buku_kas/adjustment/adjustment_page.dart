@@ -72,22 +72,25 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
         );
 
         // 1. Calculate delta based on CURRENT balance
-        double currentTargetBal = _targetKas == 'laci' ? _cache.saldoAwal : _cache.uangKas;
-        double delta = saldoBaru - currentTargetBal;
-        
+        final double currentTargetBal = _targetKas == 'laci'
+            ? _cache.saldoAwal
+            : _cache.uangKas;
+        final double delta = saldoBaru - currentTargetBal;
+
         // Total total warung also shifts by this delta
-        double currentTotal = _cache.saldoAwal + _cache.uangKas;
-        double saldoSetelah = currentTotal + delta;
+        final double currentTotal = _cache.saldoAwal + _cache.uangKas;
+        final double saldoSetelah = currentTotal + delta;
 
         // 2. Insert BUKU_KAS
         await _supabase.from('BUKU_KAS').insert({
           'warung_id': warungId,
-          'tanggal': _selectedDate.toUtc().toIso8601String(),
+          'tanggal': _selectedDate.toIso8601String(),
           'tipe': 'adjustment', // Using the new enum value
           'sumber': 'adjustment', // Using the new enum value
           'amount': delta.abs(),
           'saldo_setelah': saldoSetelah,
-          'keterangan': '[KOREKSI ${_targetKas.toUpperCase()}] Asal: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(currentTargetBal)} ➔ Jadi: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(saldoBaru)}. ${_catatanController.text.trim()}',
+          'keterangan':
+              '[KOREKSI ${_targetKas.toUpperCase()}] Asal: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(currentTargetBal)} ➔ Jadi: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(saldoBaru)}. ${_catatanController.text.trim()}',
         });
 
         // 3. Update WARUNG balance
@@ -125,7 +128,6 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
             _buildHeader(),
@@ -236,7 +238,11 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: 20),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Color(0xFF6B7280),
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     DateFormat('dd MMMM yyyy').format(_selectedDate),
@@ -331,14 +337,20 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
           _targetKas = value;
           // Set initial value to current balance for easier editing
           if (_jumlahController.text.isEmpty || _jumlahController.text == '0') {
-             _jumlahController.text = NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0).format(bal).trim();
+            _jumlahController.text = NumberFormat.currency(
+              locale: 'id_ID',
+              symbol: '',
+              decimalDigits: 0,
+            ).format(bal).trim();
           }
         });
       },
       child: Container(
         height: 60,
         decoration: BoxDecoration(
-          color: isSel ? AppTheme.primary.withValues(alpha: 0.1) : Colors.grey[50],
+          color: isSel
+              ? AppTheme.primary.withValues(alpha: 0.1)
+              : Colors.grey[50],
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSel ? AppTheme.primary : const Color(0xFFD1EDD8),
@@ -358,7 +370,11 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
               ),
             ),
             Text(
-              NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(bal),
+              NumberFormat.currency(
+                locale: 'id_ID',
+                symbol: 'Rp',
+                decimalDigits: 0,
+              ).format(bal),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -438,7 +454,11 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
         hintText: hintText,
         prefixText: isAmount ? 'Rp ' : null,
         prefixStyle: isAmount
-            ? const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)
+            ? const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              )
             : null,
         hintStyle: TextStyle(
           color: const Color(0xFF6B7280).withValues(alpha: 0.5),
@@ -448,7 +468,10 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),

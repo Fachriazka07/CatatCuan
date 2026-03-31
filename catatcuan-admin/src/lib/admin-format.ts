@@ -1,3 +1,5 @@
+const adminTimeZone = 'Asia/Jakarta';
+
 const currencyFormatter = new Intl.NumberFormat('id-ID', {
   style: 'currency',
   currency: 'IDR',
@@ -10,6 +12,7 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', {
   day: '2-digit',
   month: 'long',
   year: 'numeric',
+  timeZone: adminTimeZone,
 });
 
 const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
@@ -18,6 +21,28 @@ const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  timeZone: adminTimeZone,
+});
+
+const shortDateFormatter = new Intl.DateTimeFormat('id-ID', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: adminTimeZone,
+});
+
+const shortMonthDayFormatter = new Intl.DateTimeFormat('id-ID', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: adminTimeZone,
+});
+
+const shortDateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: adminTimeZone,
 });
 
 export function formatCurrency(value: number | string | null | undefined) {
@@ -67,6 +92,45 @@ export function formatDateTime(value: string | null | undefined) {
   }
 
   return dateTimeFormatter.format(parsed);
+}
+
+export function formatShortDate(value: string | null | undefined) {
+  if (!value) {
+    return '-';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '-';
+  }
+
+  return shortDateFormatter.format(parsed);
+}
+
+export function formatShortMonthDay(value: string | null | undefined) {
+  if (!value) {
+    return '-';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '-';
+  }
+
+  return shortMonthDayFormatter.format(parsed);
+}
+
+export function formatShortDateTime(value: string | null | undefined) {
+  if (!value) {
+    return '-';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '-';
+  }
+
+  return shortDateTimeFormatter.format(parsed);
 }
 
 export function formatShortId(value: string | null | undefined) {
