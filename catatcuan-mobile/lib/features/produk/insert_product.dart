@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:catatcuan_mobile/core/utils/barcode_helper.dart';
@@ -142,7 +143,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
             ) ??
             0,
         'stok_saat_ini': _tanpaStok
-            ? 0
+            ? ProductStockHelper.unlimitedStockValue
             : (int.tryParse(_stokController.text) ?? 0),
         'satuan': _selectedSatuan,
         'is_active': true,

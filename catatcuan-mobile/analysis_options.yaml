@@ -17,6 +17,7 @@ analyzer:
     - "**/*.freezed.dart"
     - "build/**"
     - ".dart_tool/**"
+    - "third_party/**"
 
 linter:
   rules:
