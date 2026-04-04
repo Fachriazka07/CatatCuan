@@ -20,22 +20,34 @@ class SettingsMasterDataService {
       });
   }
 
-  static Future<void> addProductCategory(String name) async {
+  static Future<Map<String, dynamic>> addProductCategory(String name) async {
     final warungId = _cache.warungId;
     if (warungId == null) throw Exception('Warung tidak ditemukan');
 
     final trimmed = name.trim();
     if (trimmed.isEmpty) throw Exception('Nama kategori harus diisi');
 
-    await _supabase.from('KATEGORI_PRODUK').insert({
+    await _cache.refreshCategories();
+    final normalized = trimmed.toLowerCase();
+    final isDuplicate = _cache.categories.any((category) {
+      final existingName =
+          (category['nama_kategori'] as String? ?? '').trim().toLowerCase();
+      return existingName == normalized;
+    });
+    if (isDuplicate) {
+      throw Exception('Kategori produk sudah ada');
+    }
+
+    final created = await _supabase.from('KATEGORI_PRODUK').insert({
       'warung_id': warungId,
       'nama_kategori': trimmed,
       'icon': 'Lainya.png',
       'sort_order': _cache.categories.length,
-    });
+    }).select().single();
 
     await _cache.refreshCategories();
     await _cache.refreshProducts();
+    return Map<String, dynamic>.from(created);
   }
 
   static Future<void> updateProductCategory({
@@ -44,6 +56,20 @@ class SettingsMasterDataService {
   }) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) throw Exception('Nama kategori harus diisi');
+
+    await _cache.refreshCategories();
+    final normalized = trimmed.toLowerCase();
+    final isDuplicate = _cache.categories.any((category) {
+      if (category['id']?.toString() == categoryId) {
+        return false;
+      }
+      final existingName =
+          (category['nama_kategori'] as String? ?? '').trim().toLowerCase();
+      return existingName == normalized;
+    });
+    if (isDuplicate) {
+      throw Exception('Kategori produk sudah ada');
+    }
 
     await _supabase.from('KATEGORI_PRODUK').update({
       'nama_kategori': trimmed,

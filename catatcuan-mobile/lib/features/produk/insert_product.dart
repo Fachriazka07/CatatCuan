@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:catatcuan_mobile/core/services/settings_master_data_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
@@ -1368,20 +1369,13 @@ class _InsertProductPageState extends State<InsertProductPage> {
                             if (name.isEmpty || _warungId == null) return;
 
                             try {
-                              final result = await supabase
-                                  .from('KATEGORI_PRODUK')
-                                  .insert({
-                                    'warung_id': _warungId,
-                                    'nama_kategori': name,
-                                    'icon': 'Lainya.png',
-                                    'sort_order': _categories.length,
-                                  })
-                                  .select()
-                                  .single();
+                              final result =
+                                  await SettingsMasterDataService
+                                      .addProductCategory(name);
 
                               setState(() {
-                                _categories.add(result);
-                                _selectedKategoriId = result['id'] as String?;
+                                _loadFromCache();
+                                _selectedKategoriId = result['id']?.toString();
                                 _selectedKategoriName = name;
                                 _selectedKategoriIcon = 'Lainya.png';
                               });
