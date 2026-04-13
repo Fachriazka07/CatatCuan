@@ -47,9 +47,14 @@ import 'package:catatcuan_mobile/features/auth/presentation/pages/forgot_passwor
 import 'package:catatcuan_mobile/features/auth/presentation/pages/forgot_password_otp_page.dart';
 import 'package:catatcuan_mobile/features/auth/presentation/pages/forgot_password_reset_page.dart';
 import 'package:catatcuan_mobile/features/auth/presentation/pages/register_page.dart';
+import 'package:flutter/material.dart';
 
 class AppRouter {
+  static final GlobalKey<NavigatorState> rootNavigatorKey =
+      GlobalKey<NavigatorState>();
+
   static final router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
     routes: [
@@ -226,10 +231,7 @@ class AppRouter {
         path: '/laporan',
         builder: (context, state) => const LaporanPage(),
       ),
-      GoRoute(
-        path: '/stats',
-        builder: (context, state) => const StatsPage(),
-      ),
+      GoRoute(path: '/stats', builder: (context, state) => const StatsPage()),
       GoRoute(
         path: '/setting',
         builder: (context, state) => const SettingsPage(),

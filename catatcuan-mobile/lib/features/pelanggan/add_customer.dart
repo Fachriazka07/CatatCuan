@@ -82,13 +82,15 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Slightly off-white background
       body: SafeArea(
         top: false,
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(statusBarHeight),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -112,10 +114,10 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double statusBarHeight) {
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: statusBarHeight + 88,
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 12, 16, 16),
       decoration: const BoxDecoration(
         color: AppTheme.primary,
       ),

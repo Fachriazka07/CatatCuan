@@ -1,3 +1,4 @@
+import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/settings_master_data_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
@@ -12,17 +13,39 @@ class ProductCategoriesPage extends StatefulWidget {
 }
 
 class _ProductCategoriesPageState extends State<ProductCategoriesPage> {
+  final _cache = DataCacheService.instance;
   bool _isLoading = true;
   List<Map<String, dynamic>> _categories = [];
 
   @override
   void initState() {
     super.initState();
+    _loadFromCache();
     _loadCategories();
   }
 
+  void _loadFromCache() {
+    final cached = List<Map<String, dynamic>>.from(_cache.categories)
+      ..sort((a, b) {
+        final orderA = (a['sort_order'] as num?)?.toInt() ?? 0;
+        final orderB = (b['sort_order'] as num?)?.toInt() ?? 0;
+        if (orderA != orderB) return orderA.compareTo(orderB);
+        return (a['nama_kategori'] as String? ?? '')
+            .compareTo(b['nama_kategori'] as String? ?? '');
+      });
+
+    if (cached.isEmpty) return;
+
+    setState(() {
+      _categories = cached;
+      _isLoading = false;
+    });
+  }
+
   Future<void> _loadCategories() async {
-    setState(() => _isLoading = true);
+    if (_categories.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     try {
       final categories = await SettingsMasterDataService.getProductCategories();
       if (!mounted) return;

@@ -1,12 +1,17 @@
+// ignore_for_file: cancel_subscriptions
+
 import 'dart:async';
 import 'dart:io';
 
+import 'package:catatcuan_mobile/core/router/app_router.dart';
 import 'package:catatcuan_mobile/core/services/notification_backend_service.dart';
 import 'package:catatcuan_mobile/core/services/settings_preferences_service.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
+import 'package:catatcuan_mobile/core/utils/app_toast.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -25,6 +30,8 @@ class PushNotificationService {
   static final PushNotificationService instance = PushNotificationService._();
 
   StreamSubscription<String>? _tokenRefreshSubscription;
+  StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
+  StreamSubscription<RemoteMessage>? _messageOpenedSubscription;
   bool _initialized = false;
   bool _firebaseReady = false;
 
@@ -51,27 +58,39 @@ class PushNotificationService {
         badge: true,
         sound: true,
       );
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
     } catch (error) {
       debugPrint('Push permission request failed: $error');
     }
 
-    _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh.listen(
-      (String token) async {
-        final userId = await SessionService.getUserId();
-        if (userId == null || userId.isEmpty) {
-          return;
-        }
+    _tokenRefreshSubscription ??= FirebaseMessaging.instance.onTokenRefresh
+        .listen((String token) async {
+          final userId = await SessionService.getUserId();
+          if (userId == null || userId.isEmpty) {
+            return;
+          }
 
-        try {
-          await _registerTokenForUser(
-            userId: userId,
-            token: token,
-          );
-        } catch (error) {
-          debugPrint('Push token refresh sync failed: $error');
-        }
-      },
+          try {
+            await _registerTokenForUser(userId: userId, token: token);
+          } catch (error) {
+            debugPrint('Push token refresh sync failed: $error');
+          }
+        });
+
+    _foregroundMessageSubscription ??= FirebaseMessaging.onMessage.listen(
+      _handleForegroundMessage,
     );
+
+    _messageOpenedSubscription ??= FirebaseMessaging.onMessageOpenedApp.listen((
+      message,
+    ) {
+      debugPrint('Notification opened: ${message.messageId}');
+    });
   }
 
   Future<void> syncForUser(String userId) async {
@@ -160,5 +179,64 @@ class PushNotificationService {
     }
 
     return 'unknown';
+  }
+
+  void _handleForegroundMessage(RemoteMessage message) {
+    final notification = message.notification;
+    final title =
+        (notification?.title ??
+                _extractMessageValue(message.data, const [
+                  'title',
+                  'notification_title',
+                ]))
+            .trim();
+    final body =
+        (notification?.body ??
+                _extractMessageValue(message.data, const [
+                  'body',
+                  'message',
+                  'notification_body',
+                ]))
+            .trim();
+
+    if (title.isEmpty && body.isEmpty) {
+      debugPrint('Foreground message received without visible content');
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = AppRouter.rootNavigatorKey.currentContext;
+      if (context == null) {
+        debugPrint(
+          'Foreground notification skipped: navigator context unavailable',
+        );
+        return;
+      }
+
+      AppToast.showInfo(
+        context,
+        body.isNotEmpty ? body : title,
+        title: title.isNotEmpty ? title : 'Notifikasi Baru',
+      );
+    });
+  }
+
+  String _extractMessageValue(
+    Map<String, dynamic> data,
+    List<String> candidateKeys,
+  ) {
+    for (final key in candidateKeys) {
+      final rawValue = data[key];
+      if (rawValue == null) {
+        continue;
+      }
+
+      final value = rawValue.toString().trim();
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+
+    return '';
   }
 }

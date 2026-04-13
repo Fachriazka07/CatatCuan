@@ -223,7 +223,7 @@ class _LaporanPageState extends State<LaporanPage> {
         return _ReportSummaryData(
           title: 'Laba Bersih',
           amount: amount,
-          subtitle: 'Profit penjualan - pengeluaran',
+          subtitle: 'Profit penjualan - pengeluaran operasional',
           status: amount >= 0 ? 'Positif' : 'Perlu perhatian',
         );
       case ReportType.sales:

@@ -1,3 +1,4 @@
+import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
 import 'package:catatcuan_mobile/core/services/settings_master_data_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/utils/app_toast.dart';
@@ -12,17 +13,42 @@ class ExpenseCategoriesPage extends StatefulWidget {
 }
 
 class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
+  final _cache = DataCacheService.instance;
   bool _isLoading = true;
   List<Map<String, dynamic>> _categories = [];
 
   @override
   void initState() {
     super.initState();
+    _loadFromCache();
     _loadCategories();
   }
 
+  void _loadFromCache() {
+    final cached = List<Map<String, dynamic>>.from(_cache.expenseCategories)
+      ..removeWhere(
+        (category) => (category['tipe'] as String? ?? 'business') != 'business',
+      )
+      ..sort((a, b) {
+        final orderA = (a['sort_order'] as num?)?.toInt() ?? 0;
+        final orderB = (b['sort_order'] as num?)?.toInt() ?? 0;
+        if (orderA != orderB) return orderA.compareTo(orderB);
+        return (a['nama_kategori'] as String? ?? '')
+            .compareTo(b['nama_kategori'] as String? ?? '');
+      });
+
+    if (cached.isEmpty) return;
+
+    setState(() {
+      _categories = cached;
+      _isLoading = false;
+    });
+  }
+
   Future<void> _loadCategories() async {
-    setState(() => _isLoading = true);
+    if (_categories.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     try {
       final categories = await SettingsMasterDataService.getExpenseCategories();
       if (!mounted) return;
@@ -42,7 +68,6 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
       text: category?['nama_kategori'] as String? ?? '',
     );
     final isEdit = category != null;
-    String selectedType = category?['tipe'] as String? ?? 'business';
     bool isSaving = false;
 
     await showDialog<void>(
@@ -104,38 +129,25 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                'JENIS KATEGORI',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF6B7280),
-                  letterSpacing: 1.1,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: Text(
-                      'Warung',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                    ),
-                    selected: selectedType == 'business',
-                    onSelected: (_) =>
-                        setModalState(() => selectedType = 'business'),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFD1EDD8)),
+                ),
+                child: Text(
+                  'Kategori ini khusus untuk pengeluaran warung.',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF111827),
                   ),
-                  ChoiceChip(
-                    label: Text(
-                      'Pribadi',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                    ),
-                    selected: selectedType == 'personal',
-                    onSelected: (_) =>
-                        setModalState(() => selectedType = 'personal'),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -163,12 +175,12 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                           await SettingsMasterDataService.updateExpenseCategory(
                             categoryId: category['id'].toString(),
                             name: name,
-                            type: selectedType,
+                            type: 'business',
                           );
                         } else {
                           await SettingsMasterDataService.addExpenseCategory(
                             name: name,
-                            type: selectedType,
+                            type: 'business',
                           );
                         }
 

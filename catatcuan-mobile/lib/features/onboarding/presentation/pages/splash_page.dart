@@ -1,6 +1,7 @@
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/session_service.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/services/push_notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,34 +26,51 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _initialize() async {
     // Step 1: Start
-    if (mounted)
+    if (mounted) {
       setState(() {
         _progress = 0.1;
         _statusText = 'Memeriksa sesi...';
       });
+    }
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
     // Step 2: Check Session (Local)
-    if (mounted)
+    if (mounted) {
       setState(() {
         _progress = 0.2;
         _statusText = 'Memeriksa sesi...';
       });
+    }
 
     final userId = await SessionService.getUserId();
 
     if (userId == null) {
-      if (mounted) setState(() => _progress = 1.0);
+      if (mounted) {
+        setState(() => _progress = 1.0);
+      }
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      if (mounted) context.go('/welcome');
+      if (mounted) {
+        context.go('/welcome');
+      }
       return;
     }
 
-    if (mounted)
+    if (mounted) {
       setState(() {
         _progress = 0.3;
+        _statusText = 'Sinkron notifikasi...';
+      });
+    }
+
+    await PushNotificationService.instance.syncForUser(userId);
+
+    if (mounted) {
+      setState(() {
+        _progress = 0.4;
         _statusText = 'Memeriksa warung...';
       });
+    }
+
     try {
       final warung = await Supabase.instance.client
           .from('WARUNG')
@@ -61,29 +79,37 @@ class _SplashPageState extends State<SplashPage> {
           .maybeSingle();
 
       if (warung == null) {
-        if (mounted) setState(() => _progress = 1.0);
+        if (mounted) {
+          setState(() => _progress = 1.0);
+        }
         await Future<void>.delayed(const Duration(milliseconds: 300));
-        if (mounted) context.go('/onboarding');
+        if (mounted) {
+          context.go('/onboarding');
+        }
         return;
       }
 
       // Step 4: Preload ALL data into cache
-      if (mounted)
+      if (mounted) {
         setState(() {
-          _progress = 0.5;
+          _progress = 0.55;
           _statusText = 'Memuat data warung...';
         });
+      }
 
       await DataCacheService.instance.loadAll(userId);
 
-      if (mounted)
+      if (mounted) {
         setState(() {
           _progress = 1.0;
           _statusText = 'Siap!';
         });
+      }
       await Future<void>.delayed(const Duration(milliseconds: 200));
 
-      if (mounted) context.go('/home');
+      if (mounted) {
+        context.go('/home');
+      }
     } catch (e) {
       debugPrint('Splash error: $e');
       if (mounted) {

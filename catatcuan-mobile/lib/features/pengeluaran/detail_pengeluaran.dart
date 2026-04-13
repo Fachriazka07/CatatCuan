@@ -69,7 +69,9 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
     );
     _selectedSource = _extractExpenseSource(fullKeterangan);
 
-    _selectedDate = DateTime.parse(widget.expense['tanggal'].toString());
+    _selectedDate = DateTime.parse(
+      widget.expense['tanggal'].toString(),
+    ).toLocal();
     _selectedKategoriId = widget.expense['kategori_id'] as String?;
 
     final cat = widget.expense['KATEGORI_PENGELUARAN'] as Map<String, dynamic>?;
@@ -78,7 +80,12 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
       _selectedKategoriIcon = cat['icon'] as String? ?? 'LainnyaPribadi.png';
     }
 
-    _categories = List<Map<String, dynamic>>.from(_cache.expenseCategories);
+    _categories = List<Map<String, dynamic>>.from(_cache.expenseCategories)
+        .where(
+          (category) =>
+              (category['tipe'] as String? ?? 'business') == 'business',
+        )
+        .toList();
   }
 
   @override
@@ -92,7 +99,7 @@ class _DetailPengeluaranPageState extends State<DetailPengeluaranPage> {
     if (iconName == null ||
         iconName.isEmpty ||
         !_validIcons.contains(iconName)) {
-      return 'assets/icon/pengeluaran-icon/LainnyaPribadi.png';
+      return 'assets/icon/produk-icon/Lainya.png';
     }
     return 'assets/icon/pengeluaran-icon/$iconName';
   }

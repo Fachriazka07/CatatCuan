@@ -131,4 +131,18 @@ class PasswordResetService {
   static String formatError(Object error) {
     return _cleanErrorMessage(error.toString());
   }
+
+  static String maskPhoneNumber(String phoneNumber) {
+    final normalized = normalizePhoneNumber(phoneNumber) ?? phoneNumber;
+
+    if (normalized.length <= 6) {
+      return normalized;
+    }
+
+    final prefix = normalized.substring(0, 4);
+    final suffix = normalized.substring(normalized.length - 3);
+    final hiddenLength = normalized.length - 7;
+
+    return '$prefix${List.filled(hiddenLength, '*').join()}$suffix';
+  }
 }

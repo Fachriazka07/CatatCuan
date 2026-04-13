@@ -104,7 +104,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               );
             })
             .map((product) {
-              final stock = ProductStockHelper.parseStock(product['stok_saat_ini']);
+              final stock = ProductStockHelper.parseStock(
+                product['stok_saat_ini'],
+              );
               final satuan = (product['satuan'] as String?) ?? 'PCS';
               final productName =
                   (product['nama_produk'] as String?) ?? 'Produk';
@@ -511,7 +513,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         _buildSalesBanner(),
                         const SizedBox(height: 0),
                         _buildMainMenu(),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
                         _buildRecentTransactions(),
                         const SizedBox(height: 100),
                       ],
@@ -529,38 +531,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Widget _buildHeader() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            Image.asset('assets/logo.png', width: 40, height: 40),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Selamat Datang',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal,
-                    fontFamily: 'Poppins',
+        Expanded(
+          child: Row(
+            children: [
+              Image.asset('assets/logo.png', width: 40, height: 40),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Selamat Datang',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
-                ),
-                Text(
-                  userName ?? '...',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
+                  Text(
+                    userName ?? '...',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
               onTap: _showNotificationSheet,
@@ -608,7 +612,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             GestureDetector(
               onTap: _openCustomerServiceWhatsApp,
               child: Transform.translate(
-                offset: const Offset(6, 0),
+                offset: const Offset(14, 0),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -1026,136 +1030,129 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 16),
         if (isLoading)
-          const Center(child: CircularProgressIndicator())
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator()),
+          )
         else if (recentTransactions.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 20),
             child: Center(child: Text('Belum ada transaksi')),
           )
         else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: recentTransactions.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final tx = recentTransactions[index];
-              final isSale = tx['type'] == 'sale';
-
-              final borderColor = isSale
-                  ? const Color(0xFFD1EDD8)
-                  : const Color(0xFFDC2626);
-              final iconColor = isSale
-                  ? AppTheme.primary
-                  : const Color(0xFFDC2626);
-
-              final formatCurrency = NumberFormat.currency(
-                locale: 'id_ID',
-                symbol: 'Rp ',
-                decimalDigits: 0,
-              );
-              final amountStr = formatCurrency.format(
-                (tx['amount'] as num).abs(),
-              );
-
-              // Date formatting: Hari, Tgl (for expenses) or HH.mm (for sales)
-              String timeDisplay;
-              if (!isSale) {
-                timeDisplay = DateFormat(
-                  'EEEE, d MMM',
-                  'id_ID',
-                ).format(tx['time'] as DateTime);
-              } else {
-                timeDisplay = DateFormat(
-                  'HH.mm',
-                ).format(tx['time'] as DateTime);
-              }
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: iconColor, width: 2),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              isSale
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
-                              color: iconColor,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.4,
-                              child: Text(
-                                tx['title'] as String,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF111827),
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              timeDisplay,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF6B7280),
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '${isSale ? '+' : '-'}$amountStr',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: iconColor,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+          Column(
+            children: [
+              for (
+                int index = 0;
+                index < recentTransactions.length;
+                index++
+              ) ...[
+                _buildRecentTransactionItem(recentTransactions[index]),
+                if (index < recentTransactions.length - 1)
+                  const SizedBox(height: 12),
+              ],
+            ],
           ),
       ],
+    );
+  }
+
+  Widget _buildRecentTransactionItem(Map<String, dynamic> tx) {
+    final isSale = tx['type'] == 'sale';
+    final borderColor = isSale
+        ? const Color(0xFFD1EDD8)
+        : const Color(0xFFDC2626);
+    final iconColor = isSale ? AppTheme.primary : const Color(0xFFDC2626);
+
+    final formatCurrency = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    final amountStr = formatCurrency.format((tx['amount'] as num).abs());
+
+    final timeDisplay = isSale
+        ? DateFormat('HH.mm').format(tx['time'] as DateTime)
+        : DateFormat('EEEE, d MMM', 'id_ID').format(tx['time'] as DateTime);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: iconColor, width: 2),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      isSale ? Icons.arrow_upward : Icons.arrow_downward,
+                      color: iconColor,
+                      size: 24,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tx['title'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        timeDisplay,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF6B7280),
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '${isSale ? '+' : '-'}$amountStr',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: iconColor,
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ],
+      ),
     );
   }
 

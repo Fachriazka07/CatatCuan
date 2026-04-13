@@ -80,15 +80,71 @@ class SettingsMasterDataService {
   }
 
   static Future<void> deleteProductCategory(String categoryId) async {
-    final usedByProduct = await _supabase
+    final warungId = _cache.warungId;
+    if (warungId == null) throw Exception('Warung tidak ditemukan');
+
+    final usedByActiveProduct = await _supabase
         .from('PRODUK')
         .select('id')
         .eq('kategori_id', categoryId)
+        .or('is_active.is.null,is_active.eq.true')
         .limit(1)
         .maybeSingle();
 
-    if (usedByProduct != null) {
+    if (usedByActiveProduct != null) {
       throw Exception('Kategori masih dipakai oleh produk');
+    }
+
+    await _cache.refreshCategories();
+
+    final currentCategory = _cache.categories.cast<Map<String, dynamic>>().firstWhere(
+      (category) => category['id']?.toString() == categoryId,
+      orElse: () => <String, dynamic>{},
+    );
+    final currentCategoryName =
+        (currentCategory['nama_kategori'] as String? ?? '').trim().toLowerCase();
+
+    final inactiveProducts = List<Map<String, dynamic>>.from(
+      await _supabase
+          .from('PRODUK')
+          .select('id')
+          .eq('kategori_id', categoryId)
+          .eq('is_active', false),
+    );
+
+    if (inactiveProducts.isNotEmpty) {
+      final existingFallback = _cache.categories.cast<Map<String, dynamic>>().firstWhere(
+        (category) =>
+            category['id']?.toString() != categoryId &&
+            ((category['nama_kategori'] as String? ?? '').trim().toLowerCase() ==
+                    'lainnya' ||
+                (category['nama_kategori'] as String? ?? '').trim().toLowerCase() ==
+                    'arsip produk'),
+        orElse: () => <String, dynamic>{},
+      );
+
+      String? fallbackCategoryId = existingFallback['id']?.toString();
+      if (fallbackCategoryId == null || fallbackCategoryId.isEmpty) {
+        final fallbackName =
+            currentCategoryName == 'lainnya' ? 'Arsip Produk' : 'Lainnya';
+        final createdFallback = await _supabase
+            .from('KATEGORI_PRODUK')
+            .insert({
+              'warung_id': warungId,
+              'nama_kategori': fallbackName,
+              'icon': 'Lainya.png',
+              'sort_order': _cache.categories.length,
+            })
+            .select('id')
+            .single();
+        fallbackCategoryId = createdFallback['id']?.toString();
+      }
+
+      await _supabase
+          .from('PRODUK')
+          .update({'kategori_id': fallbackCategoryId})
+          .eq('kategori_id', categoryId)
+          .eq('is_active', false);
     }
 
     await _supabase.from('KATEGORI_PRODUK').delete().eq('id', categoryId);
@@ -99,14 +155,10 @@ class SettingsMasterDataService {
   static Future<List<Map<String, dynamic>>> getExpenseCategories() async {
     await _cache.refreshExpenseCategories();
     return List<Map<String, dynamic>>.from(_cache.expenseCategories)
+      ..removeWhere(
+        (category) => (category['tipe'] as String? ?? 'business') != 'business',
+      )
       ..sort((a, b) {
-        final typeA = a['tipe'] as String? ?? '';
-        final typeB = b['tipe'] as String? ?? '';
-        if (typeA != typeB) {
-          if (typeA == 'business') return -1;
-          if (typeB == 'business') return 1;
-        }
-
         final orderA = (a['sort_order'] as num?)?.toInt() ?? 0;
         final orderB = (b['sort_order'] as num?)?.toInt() ?? 0;
         if (orderA != orderB) return orderA.compareTo(orderB);
@@ -129,8 +181,8 @@ class SettingsMasterDataService {
     await _supabase.from('KATEGORI_PENGELUARAN').insert({
       'warung_id': warungId,
       'nama_kategori': trimmed,
-      'tipe': type,
-      'icon': type == 'business' ? 'BelanjaStok.png' : 'LainnyaPribadi.png',
+      'tipe': 'business',
+      'icon': 'LainnyaPribadi.png',
       'sort_order': _cache.expenseCategories.length,
     });
 
@@ -147,8 +199,8 @@ class SettingsMasterDataService {
 
     await _supabase.from('KATEGORI_PENGELUARAN').update({
       'nama_kategori': trimmed,
-      'tipe': type,
-      'icon': type == 'business' ? 'BelanjaStok.png' : 'LainnyaPribadi.png',
+      'tipe': 'business',
+      'icon': 'LainnyaPribadi.png',
     }).eq('id', categoryId);
 
     await _cache.refreshExpenseCategories();

@@ -22,6 +22,9 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
   late final List<FocusNode> _focusNodes;
   bool _isSubmitting = false;
 
+  String get _maskedPhoneNumber =>
+      PasswordResetService.maskPhoneNumber(widget.phoneNumber);
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +72,10 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         controller.clear();
       }
       _focusNodes.first.requestFocus();
-      AppToast.showSuccess(context, 'Kode OTP sudah diproses untuk dikirim ulang.');
+      AppToast.showSuccess(
+        context,
+        'OTP diproses ulang ke $_maskedPhoneNumber.',
+      );
     } catch (e) {
       if (!mounted) return;
       AppToast.showError(
@@ -204,7 +210,7 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Masukkan kode yang baru kamu terima lewat SMS.',
+                        'Masukkan kode yang dikirim ke $_maskedPhoneNumber. Jika SMS belum masuk dalam 1 menit, kirim ulang OTP.',
                         style: GoogleFonts.poppins(
                           color: const Color(0xCC6B7280),
                           fontSize: 14,

@@ -120,7 +120,7 @@ export function AppSidebar() {
         </SidebarMenu>
         <div className="mt-2 flex items-center gap-2 rounded-lg bg-primary/10 p-2">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          <span className="text-xs text-muted-foreground">Super Admin</span>
+          <span className="text-xs text-muted-foreground">Admin</span>
         </div>
       </SidebarFooter>
     </Sidebar>

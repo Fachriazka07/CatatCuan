@@ -39,6 +39,10 @@ class LaporanService {
     'dd MMM yyyy, HH.mm',
     'id_ID',
   );
+  static final RegExp _stockExpensePattern = RegExp(
+    r'belanja\s+stok',
+    caseSensitive: false,
+  );
 
   String _formatCashSourceLabel(String? source) {
     switch ((source ?? '').toLowerCase()) {
@@ -126,6 +130,7 @@ class LaporanService {
           .lte('tanggal', endStr);
 
       double totalPengeluaran = 0;
+      double totalPengeluaranOperasional = 0;
       double pengeluaranTerbesar = 0;
       final kategoriPengeluaranMap = <String, double>{};
       final expenseItems = <Map<String, dynamic>>[];
@@ -141,6 +146,10 @@ class LaporanService {
         final key = kategoriNama == null || kategoriNama.isEmpty
             ? 'Tanpa Kategori'
             : kategoriNama;
+        final isStockExpense = _stockExpensePattern.hasMatch(key);
+        if (!isStockExpense) {
+          totalPengeluaranOperasional += amount;
+        }
         kategoriPengeluaranMap[key] = (kategoriPengeluaranMap[key] ?? 0) + amount;
         expenseItems.add({
           'tanggal': exp['tanggal'],
@@ -164,7 +173,7 @@ class LaporanService {
         ),
       );
 
-      final labaBersih = totalProfitPenjualan - totalPengeluaran;
+      final labaBersih = totalProfitPenjualan - totalPengeluaranOperasional;
 
       final kasRes = await _supabase
           .from('BUKU_KAS')
@@ -212,12 +221,34 @@ class LaporanService {
         final qty = (item['quantity'] as num).toInt();
         topProdukMap[name] = (topProdukMap[name] ?? 0) + qty;
       }
-      final topProdukList = topProdukMap.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
-      final topProduk = topProdukList
-          .take(5)
-          .map((e) => {'nama': e.key, 'qty': e.value})
-          .toList();
+      final productRes = await _supabase
+          .from('PRODUK')
+          .select('nama_produk, is_active')
+          .eq('warung_id', warungId)
+          .or('is_active.is.null,is_active.eq.true');
+
+      final allProductNames = <String>{};
+      for (final product in productRes) {
+        final name = (product['nama_produk'] as String?)?.trim();
+        if (name != null && name.isNotEmpty) {
+          allProductNames.add(name);
+        }
+      }
+      allProductNames.addAll(topProdukMap.keys);
+
+      final topProduk = allProductNames
+          .map((name) => {'nama': name, 'qty': topProdukMap[name] ?? 0})
+          .toList()
+        ..sort((a, b) {
+          final qtyA = (a['qty'] as int?) ?? 0;
+          final qtyB = (b['qty'] as int?) ?? 0;
+          if (qtyA != qtyB) {
+            return qtyB.compareTo(qtyA);
+          }
+          final nameA = (a['nama'] as String?) ?? '';
+          final nameB = (b['nama'] as String?) ?? '';
+          return nameA.compareTo(nameB);
+        });
 
       final hutangRes = await _supabase
           .from('HUTANG')
@@ -294,6 +325,7 @@ class LaporanService {
         'jumlah_transaksi': jumlahTransaksi,
         'sales_items': salesItems,
         'pengeluaran': totalPengeluaran,
+        'pengeluaran_operasional': totalPengeluaranOperasional,
         'jumlah_pengeluaran': jumlahPengeluaran,
         'rata_rata_pengeluaran': rataRataPengeluaran,
         'pengeluaran_terbesar': pengeluaranTerbesar,

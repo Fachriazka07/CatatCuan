@@ -50,12 +50,20 @@ class _DetailProductPageState extends State<DetailProductPage> {
   }
 
   static const Set<String> _validIcons = {
-    'BumbuDapur.png', 'Cemilan.png', 'Lainya.png', 'Minuman.png',
-    'Obat.png', 'PerlengkapanMandi.png', 'Rokok.png', 'Sembako.png',
+    'BumbuDapur.png',
+    'Cemilan.png',
+    'Lainya.png',
+    'Minuman.png',
+    'Obat.png',
+    'PerlengkapanMandi.png',
+    'Rokok.png',
+    'Sembako.png',
   };
 
   String _resolveIconPath(String? iconName) {
-    if (iconName == null || iconName.isEmpty || !_validIcons.contains(iconName)) {
+    if (iconName == null ||
+        iconName.isEmpty ||
+        !_validIcons.contains(iconName)) {
       return 'assets/icon/produk-icon/Lainya.png';
     }
     return 'assets/icon/produk-icon/$iconName';
@@ -66,7 +74,8 @@ class _DetailProductPageState extends State<DetailProductPage> {
   @override
   void initState() {
     super.initState();
-    _kodeProduk = (widget.product['barcode'] as String?) ?? _generateKodeProduk();
+    _kodeProduk =
+        (widget.product['barcode'] as String?) ?? _generateKodeProduk();
     _namaController.text = widget.product['nama_produk']?.toString() ?? '';
     _hargaModalController.text = formatIdrNumber(
       num.parse((widget.product['harga_modal'] ?? 0).toString()).toInt(),
@@ -74,17 +83,19 @@ class _DetailProductPageState extends State<DetailProductPage> {
     _hargaJualController.text = formatIdrNumber(
       num.parse((widget.product['harga_jual'] ?? 0).toString()).toInt(),
     );
-    
+
     final stok = ProductStockHelper.parseStock(widget.product['stok_saat_ini']);
     _tanpaStok = ProductStockHelper.isUnlimited(stok);
     _stokController.text = _tanpaStok ? '' : stok.toString();
-    
+
     _selectedKategoriId = widget.product['kategori_id'] as String?;
     _selectedSatuan = widget.product['satuan'] as String?;
 
     if (widget.product['KATEGORI_PRODUK'] != null) {
-      final kategori = widget.product['KATEGORI_PRODUK'] as Map<String, dynamic>;
-      _selectedKategoriName = (kategori['nama_kategori'] as String?) ?? 'Lainnya';
+      final kategori =
+          widget.product['KATEGORI_PRODUK'] as Map<String, dynamic>;
+      _selectedKategoriName =
+          (kategori['nama_kategori'] as String?) ?? 'Lainnya';
       _selectedKategoriIcon = (kategori['icon'] as String?) ?? 'Lainya.png';
     }
 
@@ -106,25 +117,30 @@ class _DetailProductPageState extends State<DetailProductPage> {
   String _generateKodeProduk() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final rng = Random();
-    final code =
-        List.generate(12, (_) => chars[rng.nextInt(chars.length)]).join();
+    final code = List.generate(
+      12,
+      (_) => chars[rng.nextInt(chars.length)],
+    ).join();
     return 'U$code';
   }
 
   double _margin = 0;
   void _calculateMargin() {
-    final beli = double.tryParse(
-            _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+    final beli =
+        double.tryParse(
+          _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        ) ??
         0;
-    final jual = double.tryParse(
-            _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+    final jual =
+        double.tryParse(
+          _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        ) ??
         0;
     setState(() => _margin = jual - beli);
   }
 
   /// Load data from cache — instant, no network call, no loading spinner.
   void _loadFromCache() {
-
     _categories = List<Map<String, dynamic>>.from(_cache.categories);
     _satuanItems = List<Map<String, dynamic>>.from(_cache.satuanItems);
   }
@@ -149,8 +165,14 @@ class _DetailProductPageState extends State<DetailProductPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Produk', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
-        content: const Text('Apakah Anda yakin ingin menghapus produk ini?', style: TextStyle(fontFamily: 'Poppins', fontSize: 14)),
+        title: const Text(
+          'Hapus Produk',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus produk ini?',
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 14),
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
         actionsPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
@@ -162,10 +184,23 @@ class _DetailProductPageState extends State<DetailProductPage> {
                   onPressed: () => Navigator.pop(ctx, false),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(
+                      color: Color(0xFFE5E7EB),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Text('Batal', style: TextStyle(color: Color(0xFF6B7280), fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 15)),
+                  child: const Text(
+                    'Batal',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -173,12 +208,24 @@ class _DetailProductPageState extends State<DetailProductPage> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444), // Tailwind Red 500
+                    backgroundColor: const Color(
+                      0xFFEF4444,
+                    ), // Tailwind Red 500
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
-                  child: const Text('Hapus', style: TextStyle(color: Colors.white, fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 15)),
+                  child: const Text(
+                    'Hapus',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -190,7 +237,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
     if (confirmed == true) {
       setState(() => _isLoading = true);
       try {
-        await supabase.from('PRODUK').delete().eq('id', widget.product['id'] as Object);
+        await _archiveProduct();
         if (mounted) {
           AppToast.showSuccess(context, 'Produk berhasil dihapus');
           context.pop(true);
@@ -206,6 +253,33 @@ class _DetailProductPageState extends State<DetailProductPage> {
     }
   }
 
+  Future<void> _archiveProduct() async {
+    final payload = {
+      'is_active': false,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    try {
+      await supabase
+          .from('PRODUK')
+          .update(payload)
+          .eq('id', widget.product['id'] as Object);
+    } catch (e) {
+      final message = e.toString().toLowerCase();
+      final isLegacyDeleteError =
+          message.contains('penjualan_item_produk_id_fkey') ||
+          message.contains('violates foreign key constraint');
+      if (!isLegacyDeleteError) rethrow;
+
+      await supabase
+          .from('PRODUK')
+          .update(payload)
+          .eq('id', widget.product['id'] as Object);
+    }
+
+    await _cache.refreshProducts();
+  }
+
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -213,10 +287,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
     try {
       if (await _isBarcodeAlreadyUsedByOtherProduct(_kodeProduk)) {
         if (mounted) {
-          AppToast.showWarning(
-            context,
-            'Barcode sudah dipakai produk lain.',
-          );
+          AppToast.showWarning(context, 'Barcode sudah dipakai produk lain.');
         }
         return;
       }
@@ -225,21 +296,27 @@ class _DetailProductPageState extends State<DetailProductPage> {
         'kategori_id': _selectedKategoriId,
         'nama_produk': _namaController.text,
         'barcode': _kodeProduk,
-        'harga_modal': double.tryParse(
-                _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+        'harga_modal':
+            double.tryParse(
+              _hargaModalController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
             0,
-        'harga_jual': double.tryParse(
-                _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+        'harga_jual':
+            double.tryParse(
+              _hargaJualController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
             0,
-        'stok_saat_ini':
-            _tanpaStok
-                ? ProductStockHelper.unlimitedStockValue
-                : (int.tryParse(_stokController.text) ?? 0),
+        'stok_saat_ini': _tanpaStok
+            ? ProductStockHelper.unlimitedStockValue
+            : (int.tryParse(_stokController.text) ?? 0),
         'satuan': _selectedSatuan,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
-      await supabase.from('PRODUK').update(productData).eq('id', widget.product['id'] as Object);
+      await supabase
+          .from('PRODUK')
+          .update(productData)
+          .eq('id', widget.product['id'] as Object);
 
       if (mounted) {
         AppToast.showSuccess(context, 'Produk berhasil diperbarui');
@@ -282,7 +359,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
           children: [
             _buildHeader(),
             Expanded(
-              child: _isLoading && _categories.isEmpty 
+              child: _isLoading && _categories.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : SingleChildScrollView(
                       child: Form(
@@ -347,7 +424,11 @@ class _DetailProductPageState extends State<DetailProductPage> {
                           shape: BoxShape.circle,
                           color: Colors.red.withValues(alpha: 0.9),
                         ),
-                        child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -360,7 +441,11 @@ class _DetailProductPageState extends State<DetailProductPage> {
                           shape: BoxShape.circle,
                           color: Colors.white,
                         ),
-                        child: const Icon(Icons.close, color: Colors.black, size: 24),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.black,
+                          size: 24,
+                        ),
                       ),
                     ),
                   ],
@@ -445,7 +530,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFD1EDD8), width: 1.5),
+                        color: const Color(0xFFD1EDD8),
+                        width: 1.5,
+                      ),
                     ),
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -470,10 +557,15 @@ class _DetailProductPageState extends State<DetailProductPage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: const Color(0xFFD1EDD8), width: 1.5),
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.format_list_bulleted,
-                      color: Color(0xFFF8BD00), size: 32),
+                  child: const Icon(
+                    Icons.format_list_bulleted,
+                    color: Color(0xFFF8BD00),
+                    size: 32,
+                  ),
                 ),
               ),
             ],
@@ -502,7 +594,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: const Color(0xFFD1EDD8), width: 1.5),
+                        color: const Color(0xFFD1EDD8),
+                        width: 1.5,
+                      ),
                     ),
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -529,10 +623,15 @@ class _DetailProductPageState extends State<DetailProductPage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: const Color(0xFFD1EDD8), width: 1.5),
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.format_list_bulleted,
-                      color: Color(0xFFF8BD00), size: 32),
+                  child: const Icon(
+                    Icons.format_list_bulleted,
+                    color: Color(0xFFF8BD00),
+                    size: 32,
+                  ),
                 ),
               ),
             ],
@@ -670,7 +769,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                       },
                       activeColor: AppTheme.primary,
                       side: const BorderSide(
-                          color: Color(0xFF6B7280), width: 1.5),
+                        color: Color(0xFF6B7280),
+                        width: 1.5,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(5),
                       ),
@@ -691,9 +792,16 @@ class _DetailProductPageState extends State<DetailProductPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.remove, color: AppTheme.primary, size: 28),
+                  child: const Icon(
+                    Icons.remove,
+                    color: AppTheme.primary,
+                    size: 28,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -724,9 +832,16 @@ class _DetailProductPageState extends State<DetailProductPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFD1EDD8),
+                      width: 1.5,
+                    ),
                   ),
-                  child: const Icon(Icons.add, color: AppTheme.primary, size: 28),
+                  child: const Icon(
+                    Icons.add,
+                    color: AppTheme.primary,
+                    size: 28,
+                  ),
                 ),
               ),
             ],
@@ -768,7 +883,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                           prefixStyle: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                            color: const Color(
+                              0xFF6B7280,
+                            ).withValues(alpha: 0.8),
                             fontFamily: 'Poppins',
                           ),
                         ),
@@ -811,7 +928,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                           prefixStyle: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                            color: const Color(
+                              0xFF6B7280,
+                            ).withValues(alpha: 0.8),
                             fontFamily: 'Poppins',
                           ),
                         ),
@@ -829,21 +948,22 @@ class _DetailProductPageState extends State<DetailProductPage> {
             child: Text(
               'Margin Keuntungan untuk produk ini sebesar',
               style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                  fontFamily: 'Poppins'),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'Rp ${formatIdrNumber(_margin.abs().round())},-',
-              style: const TextStyle(
+              '${_margin < 0 ? '-Rp ' : 'Rp '}${formatIdrNumber(_margin.abs().round())},-',
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.primary,
+                color: _margin < 0 ? const Color(0xFFDC2626) : AppTheme.primary,
                 fontFamily: 'Poppins',
               ),
             ),
@@ -895,8 +1015,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
       ),
       filled: true,
       fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Color(0xFFD1EDD8), width: 1.5),
@@ -1183,7 +1302,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                         child: ElevatedButton(
                           onPressed: () {
                             if (controller.text.trim().isNotEmpty) {
-                              setState(() => _kodeProduk = controller.text.trim());
+                              setState(
+                                () => _kodeProduk = controller.text.trim(),
+                              );
                             }
                             Navigator.pop(ctx);
                           },
@@ -1248,9 +1369,10 @@ class _DetailProductPageState extends State<DetailProductPage> {
                   const Text(
                     'Pilih Kategori',
                     style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins'),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -1263,11 +1385,15 @@ class _DetailProductPageState extends State<DetailProductPage> {
                             width: 32,
                             height: 32,
                           ),
-                          title: const Text('Lainnya',
-                              style: TextStyle(fontFamily: 'Poppins')),
+                          title: const Text(
+                            'Lainnya',
+                            style: TextStyle(fontFamily: 'Poppins'),
+                          ),
                           trailing: _selectedKategoriId == null
-                              ? const Icon(Icons.check_circle,
-                                  color: AppTheme.primary)
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: AppTheme.primary,
+                                )
                               : null,
                           onTap: () {
                             setState(() {
@@ -1285,14 +1411,20 @@ class _DetailProductPageState extends State<DetailProductPage> {
                               cat['icon']?.toString() ?? 'Lainya.png';
                           final iconPath = _resolveIconPath(iconFile);
                           return ListTile(
-                            leading:
-                                Image.asset(iconPath, width: 32, height: 32),
-                            title: Text(catName,
-                                style:
-                                    const TextStyle(fontFamily: 'Poppins')),
+                            leading: Image.asset(
+                              iconPath,
+                              width: 32,
+                              height: 32,
+                            ),
+                            title: Text(
+                              catName,
+                              style: const TextStyle(fontFamily: 'Poppins'),
+                            ),
                             trailing: _selectedKategoriId == cat['id']
-                                ? const Icon(Icons.check_circle,
-                                    color: AppTheme.primary)
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primary,
+                                  )
                                 : null,
                             onTap: () {
                               setState(() {
@@ -1348,9 +1480,10 @@ class _DetailProductPageState extends State<DetailProductPage> {
                   const Text(
                     'Pilih Satuan',
                     style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins'),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -1360,13 +1493,18 @@ class _DetailProductPageState extends State<DetailProductPage> {
                         ..._satuanItems.map((sat) {
                           final name = sat['nama_satuan'].toString();
                           return ListTile(
-                            title: Text(name,
-                                style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w500)),
+                            title: Text(
+                              name,
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             trailing: _selectedSatuanId == sat['id']
-                                ? const Icon(Icons.check_circle,
-                                    color: AppTheme.primary)
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: AppTheme.primary,
+                                  )
                                 : null,
                             onTap: () {
                               setState(() {

@@ -54,6 +54,13 @@ type LowStockAlertRow = {
   effective_threshold: number;
 };
 
+type LowStockAlertGroup = {
+  warung_id: string;
+  user_id: string;
+  nama_warung: string;
+  items: LowStockAlertRow[];
+};
+
 type PreferenceRow = {
   push_enabled: boolean;
   due_date_reminder: boolean;
@@ -162,20 +169,62 @@ function buildDueDateReminderCopy(row: DueDateReminderRow, asOfDate: Date) {
   }
 }
 
-function buildLowStockAlertCopy(row: LowStockAlertRow) {
-  const warungName = row.nama_warung.trim() || 'warung kamu';
-  const unitLabel = row.satuan?.trim() || 'pcs';
+function buildLowStockAlertCopy(rows: LowStockAlertRow[]) {
+  const [firstRow] = rows;
+  const warungName = firstRow?.nama_warung.trim() || 'warung kamu';
 
-  if (row.alert_stage === 'out_of_stock') {
+  if (!firstRow) {
     return {
-      title: 'Produk habis',
-      body: `${row.nama_produk} di ${warungName} sudah habis. Segera isi ulang stok.`,
+      title: 'Stok produk perlu dicek',
+      body: `Ada perubahan stok produk di ${warungName}.`,
+    };
+  }
+
+  if (rows.length === 1) {
+    const unitLabel = firstRow.satuan?.trim() || 'pcs';
+
+    if (firstRow.alert_stage === 'out_of_stock') {
+      return {
+        title: 'Produk habis',
+        body: `${firstRow.nama_produk} di ${warungName} sudah habis. Segera isi ulang stok.`,
+      };
+    }
+
+    return {
+      title: 'Stok mulai menipis',
+      body: `Sisa stok ${firstRow.nama_produk} di ${warungName} tinggal ${firstRow.stok_saat_ini} ${unitLabel}. Saatnya restok.`,
+    };
+  }
+
+  const outOfStockItems = rows.filter(
+    (row) => row.alert_stage === 'out_of_stock',
+  );
+  const lowStockItems = rows.filter((row) => row.alert_stage === 'low_stock');
+  const previewNames = rows
+    .slice(0, 3)
+    .map((row) => row.nama_produk.trim())
+    .join(', ');
+  const extraCount = Math.max(rows.length - 3, 0);
+  const previewLabel =
+    extraCount > 0 ? `${previewNames}, +${extraCount} lagi` : previewNames;
+
+  if (outOfStockItems.length === rows.length) {
+    return {
+      title: `${rows.length} produk habis`,
+      body: `Produk di ${warungName} yang habis: ${previewLabel}. Segera isi ulang stok.`,
+    };
+  }
+
+  if (lowStockItems.length === rows.length) {
+    return {
+      title: `${rows.length} stok produk menipis`,
+      body: `Stok di ${warungName} mulai menipis: ${previewLabel}. Saatnya restok.`,
     };
   }
 
   return {
-    title: 'Stok mulai menipis',
-    body: `Sisa stok ${row.nama_produk} di ${warungName} tinggal ${row.stok_saat_ini} ${unitLabel}. Saatnya restok.`,
+    title: 'Stok produk perlu dicek',
+    body: `${outOfStockItems.length} produk habis dan ${lowStockItems.length} produk menipis di ${warungName}. Contoh: ${previewLabel}.`,
   };
 }
 
@@ -519,38 +568,63 @@ export async function processLowStockAlerts(args?: {
       SELECT 1
       FROM public."NOTIFICATION_LOGS" nl
       WHERE nl."user_id" = sp."user_id"
+        AND nl."warung_id" = sp."warung_id"
         AND nl."channel" = 'push'
         AND nl."notification_type" = 'low_stock_alert'
         AND nl."status" = 'sent'
-        AND nl."created_at"::date = (${asOfDate})::date
-        AND coalesce(nl."payload"->>'productId', '') = sp."product_id"::text
-        AND coalesce(nl."payload"->>'stage', '') = sp."alert_stage"
+        AND coalesce(nl."payload"->>'asOfDate', '') = ${asOfDate}
     )
     ORDER BY sp."stok_saat_ini" ASC, sp."nama_produk" ASC
   `;
 
+  const groupedRows = new Map<string, LowStockAlertGroup>();
+
+  for (const row of rows) {
+    const groupKey = `${row.user_id}:${row.warung_id}`;
+    const existing = groupedRows.get(groupKey);
+
+    if (existing) {
+      existing.items.push(row);
+      continue;
+    }
+
+    groupedRows.set(groupKey, {
+      warung_id: row.warung_id,
+      user_id: row.user_id,
+      nama_warung: row.nama_warung,
+      items: [row],
+    });
+  }
+
   const summary = {
     scannedCount: rows.length,
+    groupedCount: groupedRows.size,
     sentCount: 0,
     failedCount: 0,
     skippedCount: 0,
     asOfDate,
   };
 
-  for (const row of rows) {
-    const copy = buildLowStockAlertCopy(row);
+  for (const group of groupedRows.values()) {
+    const outOfStockCount = group.items.filter(
+      (row) => row.alert_stage === 'out_of_stock',
+    ).length;
+    const lowStockCount = group.items.length - outOfStockCount;
+    const copy = buildLowStockAlertCopy(group.items);
     const result = await sendPushNotificationToUser({
-      userId: row.user_id,
-      warungId: row.warung_id,
+      userId: group.user_id,
+      warungId: group.warung_id,
       title: copy.title,
       body: copy.body,
       notificationType: 'low_stock_alert',
       data: {
         screen: 'produk',
-        productId: row.product_id,
-        stage: row.alert_stage,
-        stock: row.stok_saat_ini,
-        threshold: row.effective_threshold,
+        asOfDate,
+        productCount: group.items.length,
+        outOfStockCount,
+        lowStockCount,
+        productIds: group.items.map((row) => row.product_id).join(','),
+        productNames: group.items.map((row) => row.nama_produk).join(', '),
       },
     });
 

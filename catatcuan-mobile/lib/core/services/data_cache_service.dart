@@ -143,6 +143,9 @@ class DataCacheService {
       final allMasterData = await _supabase
           .from('MASTER_KATEGORI_PENGELUARAN')
           .select('id, nama_kategori, tipe, icon, sort_order, is_active');
+      final masterData = List<Map<String, dynamic>>.from(allMasterData)
+          .where((master) => (master['tipe'] as String? ?? '') == 'business')
+          .toList();
 
       final userData = await _supabase
           .from('KATEGORI_PENGELUARAN')
@@ -155,7 +158,7 @@ class DataCacheService {
         if (mid != null) userByMasterId[mid] = u;
       }
 
-      for (final master in List<Map<String, dynamic>>.from(allMasterData)) {
+      for (final master in masterData) {
         final masterId = master['id'].toString();
         final isActive = master['is_active'] == true;
         final existing = userByMasterId[masterId];
@@ -349,6 +352,7 @@ class DataCacheService {
           .from('PRODUK')
           .select('*, KATEGORI_PRODUK(nama_kategori, icon)')
           .eq('warung_id', warungId!)
+          .or('is_active.is.null,is_active.eq.true')
           .order('nama_produk', ascending: true);
 
       products = List<Map<String, dynamic>>.from(data);

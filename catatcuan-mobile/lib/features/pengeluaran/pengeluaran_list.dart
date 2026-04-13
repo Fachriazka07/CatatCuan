@@ -205,7 +205,7 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
 
   Widget _buildPeriodSelector() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -272,7 +272,7 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
               color: Color(0xFF2C2C2C),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -346,15 +346,18 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFD1EDD8), width: 1.5),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _expenses.length,
-        separatorBuilder: (context, index) =>
-            const Divider(height: 1, thickness: 1, color: Color(0xFFD1EDD8)),
-        itemBuilder: (context, index) {
-          return _buildExpenseItem(_expenses[index]);
-        },
+      child: Column(
+        children: [
+          for (int index = 0; index < _expenses.length; index++) ...[
+            _buildExpenseItem(_expenses[index]),
+            if (index < _expenses.length - 1)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: Color(0xFFD1EDD8),
+              ),
+          ],
+        ],
       ),
     );
   }
@@ -364,7 +367,7 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
     final iconPath = cat?['icon'] as String?;
     final title = cat?['nama_kategori'] as String? ?? 'Lainnya';
     final amount = (item['amount'] as num).toDouble();
-    final date = DateTime.parse(item['tanggal'].toString());
+    final date = DateTime.parse(item['tanggal'].toString()).toLocal();
     final timeStr = DateFormat('HH:mm').format(date);
 
     return InkWell(
@@ -373,9 +376,9 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
         if (result == true) _fetchExpenses();
       },
       child: Container(
-        padding: const EdgeInsets.all(12),
-        height: 80,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 58,
@@ -403,10 +406,11 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -414,6 +418,7 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
                       fontFamily: 'Poppins',
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     _formatExpenseNote(item['keterangan'] as String?),
                     maxLines: 1,
@@ -429,7 +434,6 @@ class _PengeluaranListPageState extends State<PengeluaranListPage> {
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   '-${_formatCurrency(amount)}',

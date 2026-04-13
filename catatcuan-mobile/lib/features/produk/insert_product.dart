@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:catatcuan_mobile/core/services/settings_master_data_service.dart';
 import 'package:catatcuan_mobile/core/theme/app_theme.dart';
 import 'package:catatcuan_mobile/core/services/data_cache_service.dart';
+import 'package:catatcuan_mobile/core/utils/currency_formatter.dart';
 import 'package:catatcuan_mobile/core/utils/product_stock_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -101,17 +102,14 @@ class _InsertProductPageState extends State<InsertProductPage> {
   }
 
   double _margin = 0;
+
+  double _parseCurrency(String value) {
+    return double.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+  }
+
   void _calculateMargin() {
-    final beli =
-        double.tryParse(
-          _hargaModalController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
-        ) ??
-        0;
-    final jual =
-        double.tryParse(
-          _hargaJualController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
-        ) ??
-        0;
+    final beli = _parseCurrency(_hargaModalController.text);
+    final jual = _parseCurrency(_hargaJualController.text);
     setState(() => _margin = jual - beli);
   }
 
@@ -133,16 +131,8 @@ class _InsertProductPageState extends State<InsertProductPage> {
         'kategori_id': _selectedKategoriId,
         'nama_produk': _namaController.text,
         'barcode': _kodeProduk,
-        'harga_modal':
-            double.tryParse(
-              _hargaModalController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
-            ) ??
-            0,
-        'harga_jual':
-            double.tryParse(
-              _hargaJualController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
-            ) ??
-            0,
+        'harga_modal': _parseCurrency(_hargaModalController.text),
+        'harga_jual': _parseCurrency(_hargaJualController.text),
         'stok_saat_ini': _tanpaStok
             ? ProductStockHelper.unlimitedStockValue
             : (int.tryParse(_stokController.text) ?? 0),
@@ -168,12 +158,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: Column(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: SafeArea(
+          top: false,
+          child: Column(
           children: [
-            _buildHeader(),
+              _buildHeader(statusBarHeight),
             Expanded(
               child: _isLoading && _warungId == null
                   ? const Center(child: CircularProgressIndicator())
@@ -201,10 +194,10 @@ class _InsertProductPageState extends State<InsertProductPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double statusBarHeight) {
     return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: statusBarHeight + 88,
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 12, 16, 16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -212,40 +205,32 @@ class _InsertProductPageState extends State<InsertProductPage> {
           colors: [Color(0xFF13B158), Color(0xFF3A9B6B)],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Tambah Produk',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.black,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
+          const Text(
+            'Tambah Produk',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: const Icon(
+                Icons.close,
+                color: Colors.black,
+                size: 24,
+              ),
             ),
           ),
         ],
@@ -630,6 +615,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       child: TextFormField(
                         controller: _hargaModalController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [CurrencyInputFormatter()],
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Wajib' : null,
                         style: TextStyle(
@@ -638,7 +624,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                           color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                           fontFamily: 'Poppins',
                         ),
-                        decoration: _inputDecoration(''),
+                        decoration: _inputDecoration('').copyWith(
+                          prefixText: 'Rp ',
+                          prefixStyle: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -664,6 +658,7 @@ class _InsertProductPageState extends State<InsertProductPage> {
                       child: TextFormField(
                         controller: _hargaJualController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [CurrencyInputFormatter()],
                         validator: (v) =>
                             v == null || v.isEmpty ? 'Wajib' : null,
                         style: TextStyle(
@@ -672,7 +667,15 @@ class _InsertProductPageState extends State<InsertProductPage> {
                           color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                           fontFamily: 'Poppins',
                         ),
-                        decoration: _inputDecoration(''),
+                        decoration: _inputDecoration('').copyWith(
+                          prefixText: 'Rp ',
+                          prefixStyle: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6B7280).withValues(alpha: 0.8),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -699,11 +702,11 @@ class _InsertProductPageState extends State<InsertProductPage> {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'Rp ${_margin.abs().toStringAsFixed(0)},-',
-              style: const TextStyle(
+              '${_margin < 0 ? '-Rp ' : 'Rp '}${formatIdrNumber(_margin.abs().round())},-',
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.primary,
+                color: _margin < 0 ? const Color(0xFFDC2626) : AppTheme.primary,
                 fontFamily: 'Poppins',
               ),
             ),

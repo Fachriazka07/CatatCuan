@@ -31,6 +31,14 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
   String? _warungId;
   String _sumberKas = 'warung';
 
+  List<Map<String, dynamic>> get _businessExpenseCategories =>
+      List<Map<String, dynamic>>.from(_cache.expenseCategories)
+          .where(
+            (category) =>
+                (category['tipe'] as String? ?? 'business') == 'business',
+          )
+          .toList();
+
   void _closePage() {
     FocusManager.instance.primaryFocus?.unfocus();
     Future<void>.delayed(Duration.zero, () {
@@ -53,8 +61,8 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
   void initState() {
     super.initState();
     _warungId = _cache.warungId;
-    if (_cache.expenseCategories.isNotEmpty) {
-      _selectedCategory = _cache.expenseCategories.first;
+    if (_businessExpenseCategories.isNotEmpty) {
+      _selectedCategory = _businessExpenseCategories.first;
     }
   }
 
@@ -70,7 +78,7 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
     if (iconName == null ||
         iconName.isEmpty ||
         !_validIcons.contains(iconName)) {
-      return 'assets/icon/pengeluaran-icon/LainnyaPribadi.png';
+      return 'assets/icon/produk-icon/Lainya.png';
     }
     return 'assets/icon/pengeluaran-icon/$iconName';
   }
@@ -625,6 +633,8 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
   }
 
   void _showCategoryPicker() {
+    final categories = _businessExpenseCategories;
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -664,14 +674,14 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                   Expanded(
                     child: ListView.separated(
                       controller: scrollController,
-                      itemCount: _cache.expenseCategories.length,
+                      itemCount: categories.length,
                       separatorBuilder: (context, index) => Divider(
                         color: Colors.grey.withValues(alpha: 0.1),
                         thickness: 1,
                         height: 1,
                       ),
                       itemBuilder: (context, index) {
-                        final cat = _cache.expenseCategories[index];
+                        final cat = categories[index];
                         final isSelected =
                             _selectedCategory?['id'] == cat['id'];
                         return ListTile(
@@ -753,7 +763,6 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
 
   void _showAddCategoryDialog() {
     final controller = TextEditingController();
-    String tipe = 'business';
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -795,26 +804,26 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Center(child: Text('BISNIS')),
-                            selected: tipe == 'business',
-                            onSelected: (v) =>
-                                setModalState(() => tipe = 'business'),
-                          ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFD1EDD8)),
+                      ),
+                      child: const Text(
+                        'Kategori ini akan dipakai untuk pengeluaran warung.',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF111827),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Center(child: Text('PRIBADI')),
-                            selected: tipe == 'personal',
-                            onSelected: (v) =>
-                                setModalState(() => tipe = 'personal'),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -836,7 +845,7 @@ class _InsertPengeluaranPageState extends State<InsertPengeluaranPage> {
                                 .insert({
                                   'warung_id': _warungId,
                                   'nama_kategori': name,
-                                  'tipe': tipe,
+                                  'tipe': 'business',
                                   'icon': 'LainnyaPribadi.png',
                                 })
                                 .select()

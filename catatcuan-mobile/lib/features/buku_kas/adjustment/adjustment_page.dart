@@ -125,12 +125,15 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
 
   @override
   Widget build(BuildContext context) {
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(statusBarHeight),
             Expanded(
               child: SingleChildScrollView(
                 child: Form(
@@ -155,10 +158,10 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(double statusBarHeight) {
     return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: statusBarHeight + 88,
+      padding: EdgeInsets.fromLTRB(16, statusBarHeight + 12, 16, 16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -166,40 +169,32 @@ class _AdjustmentPageState extends State<AdjustmentPage> {
           colors: [Color(0xFF13B158), Color(0xFF3A9B6B)],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Penyesuaian Saldo',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _closePage,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.black,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
+          const Text(
+            'Penyesuaian Saldo',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          GestureDetector(
+            onTap: _closePage,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: const Icon(
+                Icons.close,
+                color: Colors.black,
+                size: 24,
+              ),
             ),
           ),
         ],

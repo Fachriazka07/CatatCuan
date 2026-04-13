@@ -24,13 +24,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Plus, Pencil, Trash2, BellRing, Send, Loader2 } from 'lucide-react';
+import { Settings, Pencil, Trash2, BellRing, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAdminActivity } from '@/lib/admin-activity';
 import { formatShortDate } from '@/lib/admin-format';
@@ -89,12 +88,6 @@ export default function ConfigPage() {
     fetchConfigs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function openCreateDialog() {
-    setEditingConfig(null);
-    setFormData({ key: '', value: '', description: '' });
-    setDialogOpen(true);
-  }
 
   function openEditDialog(config: AppConfig) {
     setEditingConfig(config);
@@ -249,24 +242,14 @@ export default function ConfigPage() {
             Atur konfigurasi global untuk platform CatatCuan
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Config
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingConfig
-                  ? 'Edit Konfigurasi'
-                  : 'Tambah Konfigurasi Baru'}
-              </DialogTitle>
-              <DialogDescription>
-                Konfigurasi akan berlaku untuk seluruh platform
-              </DialogDescription>
-            </DialogHeader>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Konfigurasi</DialogTitle>
+                <DialogDescription>
+                  Konfigurasi akan berlaku untuk seluruh platform
+                </DialogDescription>
+              </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="key">Key</Label>
@@ -305,19 +288,17 @@ export default function ConfigPage() {
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-              >
-                Batal
-              </Button>
-              <Button onClick={handleSubmit}>
-                {editingConfig ? 'Simpan' : 'Tambah'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Batal
+                </Button>
+                <Button onClick={handleSubmit}>Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
       </div>
 
       <Card>
